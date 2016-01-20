@@ -116,6 +116,7 @@ var maxAmplitudeFound = AudioSample.min
 
 // 元组
 // 元组（tuples）把多个值组合成一个复合值。元组内的值可以是任意类型，并不要求是相同类型。
+// 元组在临时组织值的时候很有用，但是并不适合创建复杂的数据结构。如果你的数据结构并不是临时使用，请使用类或者结构体而不是元组。
 let http404Error = (404, "Not Found")  // http404Error 的类型是 (Int, String)，值是 (404, "Not Found")
 let (justTheStatusCode, _) = http404Error  // 可以通过模式匹配的方式提取元组中的值。提取的时候可以把要忽略的部分用下划线（_）标记
 print("The status code is \(justTheStatusCode)")  // 输出 "The status code is 404"
@@ -125,17 +126,13 @@ let http200Status = (statusCode: 200, description: "OK")  // 可以在定义元�
 print("The status code is \(http200Status.statusCode)")   // 输出 "The status code is 200"
 
 
-/*
-    Optionals 是 Swift 的新特性，它允许你存储两种状态的值给 Optional 变量：有效值或 None 。
-    可在值名称后加个问号 （？） 来表示这个值是 Optional。
-
-    Swift 要求所有的 Optinal 属性都必须有明确的值，如果为空，则必须明确设定为 nil
-
-    Optional<T> 是个枚举类型
-*/
-var someOptionalString: String? = "optional" // 可以是 nil
-// 下面的语句和上面完全等价，上面的写法更推荐，因为它更简洁，问号 (?) 是 Swift 提供的语法糖
-var someOptionalString2: Optional<String> = "optional"
+// 可选类型（optionals）允许你存储两种状态的值给 Optional 变量：有效值或 nil 。
+// nil不能赋值给非可选类型的变量和常量。
+// Swift 中，nil不是指针，任何类型的可选状态都可以被设置为nil，不只是对象类型。
+// 可在值名称后加个问号 (?) 来表示这个值是 Optional。问号 (?) 是 Swift 提供的语法糖
+var someOptionalString: String? = "optional" // 可以是 nil。
+var someOptionalString2: Optional<String> = "optional" // 与上面完全等价。Optional<T> 是个枚举类型
+var surveyAnswer: String?  // 如果你声明一个可选常量或者变量但是没有赋值，它们会自动被设置为nil。surveyAnswer 被自动设置为 nil
 
 if someOptionalString != nil {
     // 变量不为空
@@ -145,7 +142,8 @@ if someOptionalString != nil {
 
     let empty = someOptionalString?.isEmpty
 }
-someOptionalString = nil
+someOptionalString = nil  // 可以给可选变量赋值为nil来表示它没有值
+
 
 /*
     使用 （！） 可以解决无法访问optional值的运行错误。若要使用 （！）来强制解析，一定要确保 Optional 里不是 nil参数。
