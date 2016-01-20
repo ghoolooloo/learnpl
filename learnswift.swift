@@ -134,8 +134,9 @@ var someOptionalString: String? = "optional" // 可以是 nil。
 var someOptionalString2: Optional<String> = "optional" // 与上面完全等价。Optional<T> 是个枚举类型
 var surveyAnswer: String?  // 如果你声明一个可选常量或者变量但是没有赋值，它们会自动被设置为nil。surveyAnswer 被自动设置为 nil
 
-if someOptionalString != nil {
-    // 变量不为空
+if someOptionalString != nil {  // nil 可以使用“相等”(==)或“不等”(!=)来比较
+    // 可选变量或常量后加一个感叹号表示确定可选值一定是有效值（非 nil），并获取该有效值。这称为可选值的强制拆包（forced unwrapping）
+    // 使用!来获取一个不存在的可选值会导致运行时错误。使用!来强制拆包之前，一定要先确定可选值包含非nil的值。
     if someOptionalString!.hasPrefix("opt") {
         print("has the prefix")
     }
@@ -144,26 +145,45 @@ if someOptionalString != nil {
 }
 someOptionalString = nil  // 可以给可选变量赋值为nil来表示它没有值
 
-
-/*
-    使用 （！） 可以解决无法访问optional值的运行错误。若要使用 （！）来强制解析，一定要确保 Optional 里不是 nil参数。
-*/
-
-// 显式解包 optional 变量
-var unwrappedString: String! = "Value is expected."
-// 下面语句和上面完全等价，感叹号 (!) 是个后缀运算符，这也是个语法糖
-var unwrappedString2: ImplicitlyUnwrappedOptional<String> = "Value is expected."
-
-if let someOptionalStringConstant = someOptionalString {
-    // 由于变量 someOptinalString 有值，不为空，所以 if 条件为真
-    if !someOptionalStringConstant.hasPrefix("ok") {
+// 使用可选绑定（optional binding）来判断可选类型是否包含值，如果包含就把值赋给一个局部常量或者变量。
+// 可选绑定可以用在if和while语句中。
+if let someStringConstant = someOptionalString {
+    // 通过可选绑定的常量或变量就不需要使用强制拆包来提取值了
+    if !someStringConstant.hasPrefix("ok") {
         // does not have the prefix
     }
 }
 
-// Swift 支持可保存任何数据类型的变量
-// AnyObject == id
-// 和 Objective-C `id` 不一样, AnyObject 可以保存任何类型的值 (Class, Int, struct, 等)
+// 可以包含多个可选绑定在if语句中，并使用where子句做布尔值判断
+if let firstNumber = Int("4"), secondNumber = Int("42") where firstNumber < secondNumber {
+    print("\(firstNumber) < \(secondNumber)")
+}
+// prints "4 < 42"
+
+// 隐式拆包可选类型（implicitly unwrapped optionals）
+// 一个隐式拆包可选类型其实就是一个普通的可选类型，但是可以被当做非可选类型来使用，并不需要每次都使用强制拆包来获取可选值。
+let possibleString: String? = "An optional string."
+let forcedString: String = possibleString! // 需要感叹号来获取值
+let assumedString: String! = "An implicitly unwrapped optional string."
+// 或者：let assumedString: ImplicitlyUnwrappedOptional<String> = "An implicitly unwrapped optional string."
+let implicitString: String = assumedString  // 不需要感叹号
+// 如果你在隐式拆包可选类型没有值的时候尝试取值，会触发运行时错误。和你在没有值的普通可选类型后面加一个感叹号一样。
+
+// 仍然可以把隐式拆包可选类型当做普通可选类型来判断它是否包含值：
+if assumedString != nil {
+    print(assumedString)
+}
+// 输出 "An implicitly unwrapped optional string."
+// 如果一个变量之后可能变成nil的话请不要使用隐式解析可选类型。如果你需要在变量的生命周期中判断是否是nil的话，请使用普通可选类型。
+
+// 仍然可以在可选绑定中使用隐式解析可选类型来检查并解析它的值：
+if var definiteString = assumedString {
+    print(definiteString)
+}
+// 输出 "An implicitly unwrapped optional string."
+
+
+// Swift 支持可保存任何数据类型(Class, Int, struct, 等)的变量
 var anyObjectVar: AnyObject = 7
 anyObjectVar = "Changed value to a string, not good practice, but possible."
 
@@ -356,6 +376,50 @@ print(numbers) // [18, 6, 3]
 numbers = sorted(numbers, < )
 
 print(numbers) // [3, 6, 18]
+
+
+// 错误处理
+// 相对于可选类型只能表达存在与缺失，错误处理可以推断失败的原因，并传播至程序的其他部分。
+// 自定义错误类型。在 Swift 中，enum 是最好的自定义错误类型的方法：
+enum MyError: ErrorType {  
+    case NotExist
+    case OutOfRange
+}
+
+// 一个函数可以通过在声明中添加 throws 关键词来声明它可能抛出错误：
+func canThrowAnError() throws -> String {
+    // ...
+    throw MyError.NotExist // 抛出错误
+    // ...
+    defer {
+      // 不管是否抛出错误，总是会执行的代码。通常在这里释放获取的资源
+    } // 可以有多个defer 语句，他们的执行顺序会和栈一样，后进先出。
+    // ...
+}
+
+// 捕获错误
+do {
+    let theResult = try canThrowAnError() // 可能会抛出错误的表达式
+    // 如果没有错误抛出，将继续执行的代码。否则，不会被执行
+} catch {
+    // 捕获抛出的错误，并处理它
+}
+
+// catch 支持模式匹配
+do {
+    let theResult = try canThrowAnError()
+} catch MyError.NotExist {
+    // deal with not exist
+} catch MyError.OutOfRange {
+    // deal with out of range
+}
+
+// 不处理错误
+// 某个方法或者函数虽然声明会抛出异常，但是我确信在这个上下文中是绝对不会抛出任何错误的。这种情况下 我们可以使用 try!
+// try! functionThrowErrorNil()
+// 如果使用 try!，但方法或者函数还是抛出了错误，那么你会得到一个运行时错误 (runtime error)，程序将停止执行。 
+
+
 
 
 //
