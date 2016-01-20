@@ -82,7 +82,7 @@ let maxValue = UInt8.max  // maxValue 为 255，是 UInt8 类型
 let decimalFloat = 125.0        // 十进制浮点数
 let decimalFloatWithExp = 1.25e-2      // 十进制带指数形式的浮点数（小数部分如果为0可以连小数点一起省略）。e可以是大写或小写
 let hexadecimalFloat = 0xF.3p0  // 十六进制浮点数必须有一个指数，通过大写或者小写的 p 来指定（小数部分如果为0可以连小数点一起省略）。相当于基数和2^exp的乘积
-let anotherPi = 3 + 0.14159  // 如果表达式中同时出现了整数和浮点数，会被推断为Double类型
+let anotherPi = 3 + 0.14159  // 如果表达式中同时出现了整数和浮点数字面量，会被推断为Double类型。（数字字面量本身没有明确的类型。它们的类型只在编译器需要求值的时候被推测。）
 
 // 整数和浮点数都可以添加额外的零并且包含下划线，并不会影响字面量
 let intValue = 0007 // 十进制整数7
@@ -90,6 +90,10 @@ let paddedDouble = 000123.456  // 十进制浮点数123.456
 let largeIntValue = 77_000 // 77000
 let justOverOneMillion = 1_000_000.000_000_1
 
+
+// 布尔值
+// Swift 的布尔类型叫做Bool。它有两个布尔字面量，true和false
+let orangesAreOrange = true
 
 // 字符串插值（string interpolation）
 let piText = "Pi = \(π), Pi 2 = \(π * 2)"
@@ -101,7 +105,13 @@ let label = "some text " + String(myVariable)
 let three = 3
 let pointOneFourOneFiveNine = 0.14159
 let pi = Double(three) + pointOneFourOneFiveNine  // pi 等于 3.14159，所以被推测为 Double 类型
-let integerPi = Int(pi)  // integerPi 等于 3，所以被推测为 Int 类型
+let integerPi = Int(pi)  // pi被截断小数部分，integerPi 等于 3，所以被推测为 Int 类型
+
+
+// 类型别名
+typealias AudioSample = UInt16
+var maxAmplitudeFound = AudioSample.min
+// 类型别名与原类型是完全兼容的
 
 
 /*
