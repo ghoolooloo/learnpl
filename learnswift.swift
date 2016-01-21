@@ -95,9 +95,178 @@ let justOverOneMillion = 1_000_000.000_000_1
 // Swift 的布尔类型叫做Bool。它有两个布尔字面量，true和false
 let orangesAreOrange = true
 
+
+// 字符串和字符
+// Swift 的 String 类型是值类型。如果您创建了一个新的字符串，那么当其进行赋值操作，或在函数/方法中传递时，都会对已有字符串值创建新副本。
+// 在实际编译时，Swift 编译器会优化字符串的使用，使实际的复制只发生在绝对必要的情况下，这意味着您将字符串作为值类型的同时可以获得极高的性能。
+let someString = "Some string literal value"  // 字符串字面量默认会推断为 String 类型
+let exclamationMark: Character = "!"          // 字符变量或常量也是通过字符串字面量来初始化的，但要显式指定为 Character 类型。
+var emptyString = ""               // 空字符串字面量
+var anotherEmptyString = String()  // 与 emptyString 等价
+if emptyString.isEmpty {  // 通过 isEmpty属性来判断该字符串是否为空
+    print("Nothing to see here")
+}
+
+// 字符串可以通过一个值类型为 Character 的数组来初始化：
+let catCharacters: [Character] = ["C", "a", "t", "!", "🐱"]
+let catString = String(catCharacters)
+print(catString)  // 打印输出："Cat!🐱"
+
+// Swift 的String类型是基于 Unicode 标量 建立的，并支持访问字符的多种 Unicode 表示形式（representations）。
+// Unicode 标量是对应字符或者修饰符的唯一的21位数字，例如U+0061表示小写的拉丁字母(LATIN SMALL LETTER A)("a")。
+// Unicode 标题的范围是U+0000到U+D7FF，以及U+E000到U+10FFFF。Unicode 标量不包括 Unicode 代理项(surrogate pair) 码位（其码位范围是U+D800到U+DFFF）。
+// 转义字符：\0(空字符)、\\(反斜线)、\t(水平制表符)、\n(换行符)、\r(回车符)、\"(双引号)、\'(单引号)。
+// Unicode 标量：\u{n}（u为小写），其中n为任意一到八位十六进制数且可用的 Unicode 位码。
+let dollarSign = "\u{24}"             // $, Unicode 标量 U+0024
+let sparklingHeart = "\u{1F496}"      // 💖, Unicode 标量 U+1F496
+
+// 扩展的字形簇(Extended Grapheme Clusters)
+// 每个 Swift 的 Character 类型代表一个扩展的字形簇。 一个扩展的字形簇是一个或多个可生成人类可读的字符 Unicode 标量的有序排列。
+let eAcute: Character = "\u{E9}"                         // é
+let combinedEAcute: Character = "\u{65}\u{301}"          // 也表示字母 é，实际上由标量 e 后面加上标量 ́
+
+// 获取字符串中字符的个数，使用 count 属性。
+// 在 Swift 中，使用扩展的字符簇作为 Character 值来连接或改变字符串时，并不一定会更改字符串的字符数量。
+// 这意味着不同的字符以及相同字符的不同表示方式，可能需要不同数量的内存空间来存储。所以 Swift 中的字符在一个字符串中并不一定占用相同数量的内存空间。
+var word = "cafe"
+print("the number of characters in \(word) is \(word.characters.count)")
+// 打印输出 "the number of characters in cafe is 4"
+word += "\u{301}"    // COMBINING ACUTE ACCENT, U+0301
+print("the number of characters in \(word) is \(word.characters.count)")
+// 打印输出 "the number of characters in café is 4"。，因为第四个字符是é，而不是 e
+
+// 字符串/字符可以用等于操作符(==)和不等于操作符(!=)来比较。
+// 如果两个字符串（或者两个字符）的扩展的字形簇是规范地（canonically）相等的，那就认为它们是相等的。即，它们要有相同的语义和外形，即使它们由不同的 Unicode 标量组成。
+let eAcuteQuestion = "Voulez-vous un caf\u{E9}?"  // "Voulez-vous un café?" 使用 LATIN SMALL LETTER E WITH ACUTE
+let combinedEAcuteQuestion = "Voulez-vous un caf\u{65}\u{301}?"  // "Voulez-vous un café?" 使用 LATIN SMALL LETTER E 和 COMBINING ACUTE ACCENT
+if eAcuteQuestion == combinedEAcuteQuestion {
+    print("These two strings are considered equal")
+}
+// 打印输出 "These two strings are considered equal"
+
+// 调用字符串的hasPrefix(_:)/hasSuffix(_:)方法来检查字符串是否拥有特定前缀/后缀，两个方法均接收一个String类型的参数，并返回一个布尔值。
+let romeoAndJuliet = [
+    "Act 1 Scene 1: Verona, A public place",
+    "Act 1 Scene 2: Capulet's mansion",
+    "Act 1 Scene 3: A room in Capulet's mansion",
+    "Act 1 Scene 4: A street outside Capulet's mansion",
+    "Act 1 Scene 5: The Great Hall in Capulet's mansion",
+    "Act 2 Scene 1: Outside Capulet's mansion",
+    "Act 2 Scene 2: Capulet's orchard",
+    "Act 2 Scene 3: Outside Friar Lawrence's cell",
+    "Act 2 Scene 4: A street in Verona",
+    "Act 2 Scene 5: Capulet's mansion",
+    "Act 2 Scene 6: Friar Lawrence's cell"
+]
+var act1SceneCount = 0
+for scene in romeoAndJuliet {
+    if scene.hasPrefix("Act 1 ") {
+        ++act1SceneCount
+    }
+}
+print("There are \(act1SceneCount) scenes in Act 1")
+// 打印输出 "There are 5 scenes in Act 1"
+var mansionCount = 0
+var cellCount = 0
+for scene in romeoAndJuliet {
+    if scene.hasSuffix("Capulet's mansion") {
+        ++mansionCount
+    } else if scene.hasSuffix("Friar Lawrence's cell") {
+        ++cellCount
+    }
+}
+print("\(mansionCount) mansion scenes; \(cellCount) cell scenes")
+// 打印输出 "6 mansion scenes; 2 cell scenes"
+
+// Swift 中，能否更改字符串的值，取决于其被定义为常量还是变量。
+var variableString = "Horse"
+variableString += " and carriage"  // variableString 现在为 "Horse and carriage"
+let constantString = "Highlander"
+constantString += " and another Highlander"  // 这会报告一个编译错误 (compile-time error) - 常量字符串不可以被修改。
+
+// 可通过for-in循环来遍历字符串中的characters属性来获取每一个字符的值：
+for character in "Dog!🐶".characters {
+    print(character)
+}
+// D
+// o
+// g
+// !
+// 🐶
+
+// 每一个String值都有一个关联的索引类型 —— String.Index（一个结构体），它对应着字符串中的每一个 Character 的位置。
+let greeting = "Guten Tag!"
+// startIndex 表示 String 的第一个 Character 的索引
+greeting[greeting.startIndex]                // G
+// endIndex 表示 String 的最后一个Character的后一个位置的索引。
+// predecessor() 获取前面一个索引
+greeting[greeting.endIndex.predecessor()]    // !
+// successor() 获取后面一个索引
+greeting[greeting.startIndex.successor()]    // u
+// advancedBy(n)：n 如果是正数，则表示获取之后第n个索引。n 如果是负数，则表示获取之前第n个索引。
+greeting[greeting.startIndex.advancedBy(7)]  // a
+greeting[greeting.endIndex]   // error
+greeting.endIndex.successor() // error
+
+// 使用characters属性的indices属性会创建一个包含全部索引的范围(Range)，用来在一个字符串中访问单个字符：
+for index in greeting.characters.indices {
+   print("\(greeting[index]) ", terminator: "")
+}
+// 打印输出 "G u t e n   T a g ! "
+
+// 字符串可以通过加法运算符（+）连接起来创建一个新的字符串：
+let string1 = "hello"
+let string2 = " there"
+var welcome = string1 + string2  // welcome 现在等于 "hello there"
+var instruction = "look over"
+instruction += string2  // instruction 现在等于 "look over there"
+let exclamationMark: Character = "!"
+welcome.append(exclamationMark)  // append()方法将一个字符附加到一个字符串变量的尾部。welcome 现在等于 "hello there!"
+// 不能将一个字符串或者字符添加到一个已经存在的字符变量上，因为字符变量只能包含一个字符。
+
+var welcome = "hello"
+// 调用insert(_:atIndex:)方法可以在一个字符串的指定索引插入一个字符：
+welcome.insert("!", atIndex: welcome.endIndex)  // welcome 现在等于 "hello!"
+// 调用insertContentsOf(_:at:)方法可以在一个字符串的指定索引插入一个字符串：
+welcome.insertContentsOf(" there".characters, at: welcome.endIndex.predecessor())  // welcome 现在等于 "hello there!"
+// 调用removeAtIndex(_:)方法可以在一个字符串的指定索引删除一个字符：
+welcome.removeAtIndex(welcome.endIndex.predecessor())  // welcome 现在等于 "hello there"
+// 调用removeRange(_:)方法可以在一个字符串的指定索引删除一个子字符串：
+let range = welcome.endIndex.advancedBy(-6)..<welcome.endIndex
+welcome.removeRange(range)  // welcome 现在等于 "hello"
+
 // 字符串插值（string interpolation）
 let piText = "Pi = \(π), Pi 2 = \(π * 2)"
+// 插值中不能包含非转义反斜杠 (\)，并且不能包含回车或换行符。
 
+// 当一个 Unicode 字符串被写进文本文件或者其他储存时，字符串中的 Unicode 标量会用 Unicode 定义的几种编码格式（encoding forms）编码。
+// UTF-8 编码格式（编码字符串为8位的代码单元）， UTF-16 编码格式（编码字符串位16位的代码单元），UTF-32 编码格式（编码字符串32位的代码单元）。
+// 每一个字符串中的小块编码都被称代码单元（code units）。
+let dogString = "Dog‼🐶"
+// 可以通过遍历String的utf8属性来访问它的UTF-8表示。 其为String.UTF8View类型的属性，UTF8View是无符号8位 (UInt8) 值的集合，每一个UInt8值都是一个字符的 UTF-8 表示：
+for codeUnit in dogString.utf8 {
+    print("\(codeUnit) ", terminator: "")
+}
+print("")  // 68 111 103 226 128 188 240 159 144 182
+// 可以通过遍历String的utf16属性来访问它的UTF-16表示。 其为String.UTF16View类型的属性，UTF16View是无符号16位 (UInt16) 值的集合，每一个UInt16都是一个字符的 UTF-16 表示：
+for codeUnit in dogString.utf16 {
+    print("\(codeUnit) ", terminator: "")
+}
+print("")  // 68 111 103 8252 55357 56374
+// 可以通过遍历String值的unicodeScalars属性来访问它的 Unicode 标量表示（也就是字符串的 UTF-32 编码格式）。 其为UnicodeScalarView类型的属性，UnicodeScalarView是UnicodeScalar类型的值的集合。 UnicodeScalar是21位的 Unicode 代码点。
+// 每一个UnicodeScalar拥有一个value属性，可以返回对应的21位数值，用UInt32来表示：
+for scalar in dogString.unicodeScalars {
+    print("\(scalar.value) ", terminator: "")
+}
+print("")  // 68 111 103 8252 128054
+for scalar in dogString.unicodeScalars {
+    print("\(scalar) ")
+}
+// D
+// o
+// g
+// ‼
+// 🐶
 
 // 类型转换
 // 在Swift中，值永远不会被隐式转换为其他类型。如果你需要把一个值转换成其他类型，请调用构造器显式转换。
@@ -191,6 +360,7 @@ anyObjectVar = "Changed value to a string, not good practice, but possible."
 // 赋值运算符
 var a = 5
 a = 6
+a += 2
 // Swift 的赋值操作并不返回任何值。所以不能这样写：if x = y {...}
 
 
@@ -204,8 +374,7 @@ a = 6
 8 % 2.5     // 等于 0.5
 // 在对负数b求余时，b的符号会被忽略。这意味着 a % b 和 a % -b的结果是相同的。
 // Swift 默认情况下不允许在数值运算中出现溢出情况。但是你可以使用 Swift 的溢出运算符来实现溢出运算（如 a &+ b）
-// 加法运算符也可用于String的拼接：
-"hello, " + "world"  // 等于 "hello, world"
+
 // 当++前置的时候，先自増再返回；当++后置的时候，先返回再自增。
 // 当--前置的时候，先自减再返回；当--后置的时候，先返回再自减。
 var a = 0
@@ -213,54 +382,204 @@ let b = ++a // a 和 b 现在都是 1
 let c = a++ // a 现在 2, 但 c 是 a 自增前的值 1
 
 
-//
-// Mark: 数组与字典（关联数组）
-//
+// 比较运算符
+1 == 1   // true
+2 != 1   // true
+2 > 1    // true
+1 < 2    // true
+1 >= 1   // true
+2 <= 1   // false
+// Swift 也提供恒等===和不恒等!==这两个比较符来判断两个对象是否引用同一个对象实例。
 
-/*
-    Array 和 Dictionary 是结构体，不是类，他们作为函数参数时，是用值传递而不是指针传递。
-    可以用 `var` 和 `let` 来定义变量和常量。
-*/
 
-// Array
-var shoppingList = ["catfish", "water", "lemons"]
-shoppingList[1] = "bottle of water"
+// 条件运算符
+let contentHeight = 40
+let hasHeader = true
+let rowHeight = contentHeight + (hasHeader ? 50 : 20)  // rowHeight 现在是 90
+
+
+// Nil Coalescing 运算符
+// Nil Coalescing 运算符(a ?? b，相当于 a != nil ? a! : b)将对可选类型a进行判断，如果a包含一个非nil值就进行拆包，否则就返回默认值 b。
+// 表达式a必须是可选类型；默认值 b 的类型必须要和 a 中存储值的类型保持一致。
+// 如果 a 为非 nil 值，那么值 b 将不会被求值，即短路求值。
+let defaultColorName = "red"
+var userDefinedColorName: String?   //默认值为 nil
+var colorNameToUse = userDefinedColorName ?? defaultColorName
+// userDefinedColorName 的值为空，所以 colorNameToUse 的值为 "red"。colorNameToUse 不是可选类型，而是 String。
+
+
+// 闭区间运算符（a...b）定义一个包含从 a 到 b（包括 a 和 b）的所有值的区间，b 必须大于等于 a。
+for index in 1...5 {
+    print("\(index) * 5 = \(index * 5)")
+}
+// 1 * 5 = 5
+// 2 * 5 = 10
+// 3 * 5 = 15
+// 4 * 5 = 20
+// 5 * 5 = 25
+
+// 半开区间运算符（a..<b）定义一个从 a 到 b 但不包括 b 的区间。
+let names = ["Anna", "Alex", "Brian", "Jack"]
+let count = names.count
+for i in 0..<count {
+    print("第 \(i + 1) 个人叫 \(names[i])")
+}
+// 第 1 个人叫 Anna
+// 第 2 个人叫 Alex
+// 第 3 个人叫 Brian
+// 第 4 个人叫 Jack
+
+
+// 逻辑运算符
+// 逻辑非（!a）
+// 逻辑与（a && b），短路计算
+// 逻辑或（a || b），短路计算
+
+
+// Swift 语言提供Arrays、Sets和Dictionaries三种基本的集合类型用来存储集合数据。
+// 数组（Arrays）是有序数据的集。集合（Sets）是无序无重复数据的集。字典（Dictionaries）是无序的键值对的集。
+// Array、Set 和 Dictionary 是结构体，不是类，他们作为函数参数时，是用值传递而不是指针传递。
+// 如果创建一个Arrays、Sets或Dictionaries并且把它分配成一个变量，这个集合将会是可变的。这意味着我们可以在创建之后添加更多或移除已存在的数据项，或者改变集合中的数据项。如果我们把Arrays、Sets或Dictionaries分配成常量，那么它就是不可变的，它的大小和内容都不能被改变。
+
+
+// 数组
+var shoppingList = ["catfish", "water", "lemons", "baking powder"]
+shoppingList[1] = "bottle of water"  // 替换第二个元素的值
+shoppingList[1...3] = ["Bananas", "Apples"]  // shoppingList 现在变成3项：["catfish", "Bananas", "Apples"]。"bottle of water"、"lemons"、"baking powder" 三项被换成了 "Bananas"、"Apples" 两项。
 let emptyArray = [String]() // 使用 let 定义常量，此时 emptyArray 数组不能添加或删除内容
 let emptyArray2 = Array<String>() // 与上一语句等价，上一语句更常用
 var emptyMutableArray = [String]() // 使用 var 定义变量，可以向 emptyMutableArray 添加数组元素
 var explicitEmptyMutableStringArray: [String] = [] // 与上一语句等价
+shoppingList = []  // 现在 shoppingList 变成空数组了
+// 创建一个带有默认值的数组：
+var threeDoubles = [Double](count: 3, repeatedValue:0.0)  // threeDoubles 是一种 [Double] 数组，等价于 [0.0, 0.0, 0.0]
+var anotherThreeDoubles = Array(count: 3, repeatedValue: 2.5)  // anotherThreeDoubles 被推断为 [Double]，等价于 [2.5, 2.5, 2.5]
+// 数组连接：
+var sixDoubles = threeDoubles + anotherThreeDoubles  // sixDoubles 被推断为 [Double]，等价于 [0.0, 0.0, 0.0, 2.5, 2.5, 2.5]
+shoppingList += ["Chocolate Spread", "Cheese", "Butter"]
+shoppingList.append("Flour")  // 可以使用append(_:)方法在数组后面添加新的数据项
+shoppingList.insert("Maple Syrup", atIndex: 0) // 调用数组的insert(_:atIndex:)方法来在某个具体索引值之前添加数据项。"Maple Syrup" 现在是这个数组中的第一项。
+let mapleSyrup = shoppingList.removeAtIndex(0) // removeAtIndex(_:)方法把数组在特定索引值中存储的数据项移除并且返回这个被移除的数据项。现在 "Chocolate Spread" 又变成数组的第一个项。
+let flour = shoppingList.removeLast()  // 把数组中的最后一项移除，并返回被移除的数据项
+// 使用数组的只读属性count来获取数组中的数据项数量：
+print("The shopping list contains \(shoppingList.count) items.")  // 输出 "The shopping list contains 3 items."
+
+// 使用布尔值属性isEmpty检查count属性的值是否为 0：
+if shoppingList.isEmpty {
+    print("The shopping list is empty.")
+} else {
+    print("The shopping list is not empty.")
+}
+// 打印 "The shopping list is not empty."
+
+// 遍历数组
+for item in shoppingList {
+    print(item)
+}
+
+// 如果我们同时需要每个数据项的值和索引值，可以使用enumerate()方法来进行数组遍历。enumerate()返回一个由每一个数据项索引值和数据值组成的元组：
+for (index, value) in shoppingList.enumerate() {
+    print("Item \(String(index + 1)): \(value)")
+}
+
+
+// 集合
+// 一个类型为了存储在集合中，该类型必须是可哈希化的。也就是说，符合 Swift 标准库中的Hashable协议。符合Hashable协议的类型需要提供一个类型为Int的可读属性hashValue。
+// 由类型的hashValue属性返回的值不需要在同一程序的不同执行周期或者不同程序之间保持相同。
+// 一个哈希值是Int类型的，相等的对象哈希值必须相同，比如a==b,因此必须a.hashValue == b.hashValue。
+// Swift 的所有基本类型（比如String、Int、Double和Bool）默认都是可哈希化的，可以作为集合的值的类型或者字典的键的类型。没有关联值的枚举量默认也是可哈希化的。
+var letters = Set<Character>()  // 创建一个空集合
+print("letters is of type Set<Character> with \(letters.count) items.")  // 通过只读 count 属性获得集合包含的元素个数。
+letters.insert("a")    // letters 现在含有1个 Character 类型的值
+etters = []  // letters 现在是一个空的 Set, 但是它依然是 Set<Character> 类型
+var favoriteGenres: Set = ["Rock", "Classical", "Hip hop", "Jazz"]
+// 等价于：var favoriteGenres: Set<String> = ["Rock", "Classical", "Hip hop"]
+
+if favoriteGenres.isEmpty {  // 布尔属性isEmpty检查count属性是否为0
+    print("As far as music goes, I'm not picky.")
+} else {
+    print("I have particular music preferences.")
+}
+// 打印 "I have particular music preferences."
+
+// 可以通过调用Set的remove(_:)方法去删除一个元素，如果该值是该Set的一个元素则删除该元素并且返回被删除的元素值，否则如果该Set不包含该值，则返回nil。
+// 另外，Set中的所有元素可以通过它的removeAll()方法删除。
+if let removedGenre = favoriteGenres.remove("Rock") {
+    print("\(removedGenre)? I'm over it.")
+} else {
+    print("I never much cared for that.")
+}
+// 打印 "Rock? I'm over it."
+
+// 使用contains(_:)方法去检查Set中是否包含一个特定的值：
+if favoriteGenres.contains("Funk") {
+    print("I get up on the good foot.")
+} else {
+    print("It's too funky in here.")
+}
+// 打印 "It's too funky in here."
+
+// 遍历一个集合
+for genre in favoriteGenres {
+    print("\(genre)")
+}
+// Classical
+// Jazz
+// Hip hop
+
+// Swift 的 Set 类型没有确定的顺序，为了按照特定顺序来遍历一个 Set 中的值可以使用 sort() 方法，它将根据提供的序列返回一个有序集合:
+for genre in favoriteGenres.sort() {
+    print("\(genre)")
+}
+// Classical
+// Hip hop
+// Jazz
+
+// 集合操作
+let oddDigits: Set = [1, 3, 5, 7, 9]
+let evenDigits: Set = [0, 2, 4, 6, 8]
+let singleDigitPrimeNumbers: Set = [2, 3, 5, 7]
+oddDigits.union(evenDigits).sort()  // 并集：[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+oddDigits.intersect(evenDigits).sort()  // 交集：[]
+oddDigits.subtract(singleDigitPrimeNumbers).sort()  // 差集：[1, 9]
+oddDigits.exclusiveOr(singleDigitPrimeNumbers).sort()  // 不在交集中的元素：[1, 2, 9]
+
+// 集合关系
+let houseAnimals: Set = ["🐶", "🐱"]
+let farmAnimals: Set = ["🐮", "🐔", "🐑", "🐶", "🐱"]
+let cityAnimals: Set = ["🐦", "🐭"]
+houseAnimals.isSubsetOf(farmAnimals)  // 包含于：true
+houseAnimals.isStrictSubsetOf(farmAnimals)  // 真包含于：true
+farmAnimals.isSupersetOf(houseAnimals)  // 包含：true
+farmAnimals.isStrictSupersetOf(houseAnimals)  // 真包含：true
+farmAnimals.isDisjointWith(cityAnimals) // 判断两个集合是否没有交集：true
+houseAnimals == farmAnimals // 运算符(==)来判断两个集合是否包含全部相同的值：false
+
 
 // 字典
-var occupations = [
-    "Malcolm": "Captain",
-    "kaylee": "Mechanic"
-]
-occupations["Jayne"] = "Public Relations"   // 修改字典，如果 key 不存在，自动添加一个字典元素
-let emptyDictionary = [String: Float]() // 使用 let 定义字典常量，字典常量不能修改里面的值
-let emptyDictionary2 = Dictionary<String, Float>() // 与上一语句类型等价，上一语句更常用
-var emptyMutableDictionary = [String: Float]() // 使用 var 定义字典变量
-var explicitEmptyMutableDictionary: [String: Float] = [:] // 与上一语句类型等价
+// 一个字典的Key类型必须遵循Hashable协议，就像Set的元素类型。
+let emptyDictionary = [String: Float]() // 空的[String: Float]字典
+let emptyDictionary2 = Dictionary<String, Float>() // 同上
+var namesOfIntegers: [Int: String] = [:] // 空的[Int: String]字典
+namesOfIntegers[16] = "sixteen"  // namesOfIntegers 现在包含一个键值对。修改字典，如果 key 不存在，自动添加一个字典元素
+namesOfIntegers = [:]  // namesOfIntegers 又成为了一个 [Int: String] 类型的空字典
+var airports = ["YYZ": "Toronto Pearson", "DUB": "Dublin"]  // 用字典字面量创建字典
+// 等价于：var airports: [String: String] = ["YYZ": "Toronto Pearson", "DUB": "Dublin"]
+print("The dictionary of airports contains \(airports.count) items.")  // 通过字典的只读属性count来获取某个字典的数据项数量
+if airports.isEmpty {  // 使用布尔属性isEmpty来检查字典的count属性是否等于0
+    print("The airports dictionary is empty.")
+} else {
+    print("The airports dictionary is not empty.")
+}
+airports["LHR"] = "London"  // airports 字典现在有三个数据项
+airports["LHR"] = "London Heathrow"  // "LHR"对应的值被改为 "London Heathrow
 
 
 //
 // MARK: 控制流
 //
 
-// 数组的 for 循环
-let myArray = [1, 1, 2, 3, 5]
-for value in myArray {
-    if value == 1 {
-        print("One!")
-    } else {
-        print("Not one!")
-    }
-}
 
-// 字典的 for 循环
-var dict = ["one": 1, "two": 2]
-for (key, value) in dict {
-    print("\(key): \(value)")
-}
 
 // 区间的 loop 循环：其中 `...` 表示闭环区间，即[-1, 3]；`..<` 表示半开闭区间，即[-1,3)
 for i in -1...shoppingList.count {
