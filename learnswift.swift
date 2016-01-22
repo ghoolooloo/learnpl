@@ -571,22 +571,73 @@ if airports.isEmpty {  // 使用布尔属性isEmpty来检查字典的count属性
 } else {
     print("The airports dictionary is not empty.")
 }
-airports["LHR"] = "London"  // airports 字典现在有三个数据项
-airports["LHR"] = "London Heathrow"  // "LHR"对应的值被改为 "London Heathrow
+airports["LHR"] = "London"  // 新增。airports 字典现在有三个数据项
+airports["LHR"] = "London Heathrow"  // 更新。"LHR"对应的值被改为 "London Heathrow
+// 使用下标语法来在字典中检索特定键对应的值时，因为有可能指定的键有可能并不存在，所以字典的下标访问会返回对应值的类型的可选类型。如果这个字典包含请求键所对应的值，下标会返回一个包含这个存在值的可选值，否则将返回nil
+airports["LHR"] = nil   // 可以使用下标语法来通过给某个键的对应值赋值为nil来从字典里移除一个键值对。LHR 现在被移除了。
 
-
-//
-// MARK: 控制流
-//
-
-
-
-// 区间的 loop 循环：其中 `...` 表示闭环区间，即[-1, 3]；`..<` 表示半开闭区间，即[-1,3)
-for i in -1...shoppingList.count {
-    print(i)
+// 字典的 updateValue(_:forKey:) 方法在指定键不存在时会新增该键值或者在存在时更新已存在的值。如果是新增则返回 nil，否则返回更新前的旧值，即返回的是一个可选类型值。
+if let oldValue = airports.updateValue("Dublin Airport", forKey: "DUB") {  // 这里使用了可选绑定，因此不需要显式的拆包
+    print("The old value for DUB was \(oldValue).")
 }
-shoppingList[1...2] = ["steak", "peacons"]
-// 可以使用 `..<` 来去掉最后一个元素
+// 输出 "The old value for DUB was Dublin.
+
+// removeValueForKey(_:)方法也可以用来在字典中移除键值对。这个方法在键值对存在的情况下会移除该键值对并且返回被移除的值或者在没有值的情况下返回nil：
+if let removedValue = airports.removeValueForKey("DUB") {
+    print("The removed airport's name is \(removedValue).")
+} else {
+    print("The airports dictionary does not contain a value for DUB.")
+}
+// prints "The removed airport's name is Dublin Airport."
+
+// 遍历字典
+for (airportCode, airportName) in airports {  // 每一个字典中的数据项都以(key, value)元组形式返回
+    print("\(airportCode): \(airportName)")
+}
+
+// 通过访问keys或者values属性，我们也可以遍历字典的键或者值：
+for airportCode in airports.keys {
+    print("Airport code: \(airportCode)")
+}
+for airportName in airports.values {
+    print("Airport name: \(airportName)")
+}
+
+// 可以使用keys或者values属性构造一个新数组：
+let airportCodes = [String](airports.keys)    // airportCodes 是 ["YYZ", "LHR"]
+let airportNames = [String](airports.values)  // airportNames 是 ["Toronto Pearson", "London Heathrow"]
+
+// Swift 的字典类型是无序集合类型。为了以特定的顺序遍历字典的键或值，可以对字典的keys或values属性使用sort()方法。
+
+
+// for-in 循环用来遍历一个集合（例如区间、数组、集合、字典、字符串等）里面的所有元素。
+for index in 1...5 {  // index 被隐式声明
+    print("\(index) times 5 is \(index * 5)")
+}
+// 1 times 5 is 5
+// 2 times 5 is 10
+// 3 times 5 is 15
+// 4 times 5 is 20
+// 5 times 5 is 25
+
+let base = 3
+let power = 10
+var answer = 1
+for _ in 1...power {  // 可以使用下划线（_）替代变量名来忽略对值的访问
+    answer *= base
+}
+print("\(base) to the power of \(power) is \(answer)")
+// 输出 "3 to the power of 10 is 59049"
+
+
+// for 循环
+for var index = 0; index < 3; ++index {
+    print("index is \(index)")
+}
+// index is 0
+// index is 1
+// index is 2
+
 
 // while 循环
 var i = 1
@@ -594,33 +645,218 @@ while i < 1000 {
     i *= 2
 }
 
-// do-while 循环
-do {
+
+// repeat-while 循环
+repeat {
     print("hello")
-} while 1 == 2
+} while 1 == 2  // 条件为 false 时退出循环
+
+
+// if 语句
+var temperatureInFahrenheit = 30
+if temperatureInFahrenheit <= 32 {
+    print("It's very cold. Consider wearing a scarf.")
+}
+// 输出 "It's very cold. Consider wearing a scarf."
+
+// if-else 语句
+if temperatureInFahrenheit >= 32 {
+    print("It's very cold. Consider wearing a scarf.")
+} else {
+    print("It's not that cold. Wear a t-shirt.")
+}
+// 输出 "It's not that cold. Wear a t-shirt."
+
+// if-else-if 语句
+if temperatureInFahrenheit <= 32 {
+    print("It's very cold. Consider wearing a scarf.")
+} else if temperatureInFahrenheit >= 86 {
+    print("It's really warm. Don't forget to wear sunscreen.")
+} else {
+    print("It's not that cold. Wear a t-shirt.")
+}
+// 输出 "It's very cold. Consider wearing a scarf."
+
+
+// guard 语句
+// guard 更象一个断言，只要当条件不满足时，才会执行 else 块中代码。而断言是直接终止程序。
+func greet(person: [String: String]) {
+    guard let name = person["name"] else {  // name的作用域是从声明开始到函数结尾。如果是使用 if let，则作用域只在 if 语句中
+        return
+    }
+    print("Hello \(name)")
+    guard let location = person["location"] else {
+        print("I hope the weather is nice near you.")
+        return
+    }
+    print("I hope the weather is nice in \(location).")
+}
+greet(["name": "John"])
+// prints "Hello John!"
+// prints "I hope the weather is nice near you."
+greet(["name": "Jane", "location": "Cupertino"])
+// prints "Hello Jane!"
+// prints "I hope the weather is nice in Cupertino."
+
+
+// 检测 API 可用性
+if #available(iOS 9, OSX 10.10, *) {  // 最后一个参数，*，是必须写的，用于处理未来潜在的平台
+    // 代码仅会在 iOS 9 及更高版本的系统或者在 OS X v10.10 及更高版本的系统上执行。
+} else {
+    // 使用先前版本的 iOS 和 OS X 的 API
+}
+
 
 // Switch 语句
-// Swift 里的 Switch 语句功能异常强大，结合枚举类型，可以实现非常简洁的代码，可以把 switch 语句想象成 `if` 的语法糖
-// 它支持字符串，类实例或原生数据类型 (Int, Double, etc)
+// switch语句会尝试把某个值与若干个模式（pattern）进行匹配。根据第一个匹配成功的模式，switch语句会执行对应的代码。
+// switch语句必须是完备的。这就是说，每一个可能的值都必须至少有一个 case 分支与之对应。在某些不可能涵盖所有值的情况下，你可以使用默认（default）分支满足该要求，这个默认分支必须在switch语句的最后面。
 let vegetable = "red pepper"
 switch vegetable {
 case "celery":
     let vegetableComment = "Add some raisins and make ants on a log."
-case "cucumber", "watercress":
+    // 当匹配的 case 分支中的代码执行完毕后，程序会终止switch语句，而不会继续执行下一个 case 分支。
+case "cucumber", "watercress":  // 一个 case 也可以包含多个模式，用逗号把它们分开
     let vegetableComment = "That would make a good tea sandwich."
-case let localScopeValue where localScopeValue.hasSuffix("pepper"):
+case let localScopeValue where localScopeValue.hasSuffix("pepper"):  // 当且仅当where语句的条件为true时，匹配到的 case 分支才会被执行。
     let vegetableComment = "Is it a spicy \(localScopeValue)?"
-default: // 在 Swift 里，switch 语句的 case 必须处理所有可能的情况，如果 case 无法全部处理，则必须包含 default语句
+default: 
     let vegetableComment = "Everything tastes good in soup."
 }
 
+// case 分支的模式也可以是一个值的区间。
+let approximateCount = 62
+let countedThings = "moons orbiting Saturn"
+var naturalCount: String
+switch approximateCount {
+case 0:
+    naturalCount = "no"
+case 1..<5:
+    naturalCount = "a few"
+case 5..<12:
+    naturalCount = "several"
+case 12..<100:
+    naturalCount = "dozens of"
+case 100..<1000:
+    naturalCount = "hundreds of"
+default:
+    naturalCount = "many"
+}
+print("There are \(naturalCount) \(countedThings).")
+// 输出 "There are dozens of moons orbiting Saturn."
 
-//
-// MARK: 函数
-//
+// 可以使用元组在同一个switch语句中测试多个值。元组中的元素可以是值，也可以是区间。
+let somePoint = (1, 1)
+switch somePoint {
+case (0, 0):
+    print("(0, 0) is at the origin")
+case (_, 0):  // 使用下划线（_）来匹配任意的值
+    print("(\(somePoint.0), 0) is on the x-axis")
+case (0, _):
+    print("(0, \(somePoint.1)) is on the y-axis")
+case (-2...2, -2...2):
+    print("(\(somePoint.0), \(somePoint.1)) is inside the box")
+default:
+    print("(\(somePoint.0), \(somePoint.1)) is outside of the box")
+}
+// 输出 "(1, 1) is inside the box"
 
-// 函数是一个 first-class 类型，他们可以嵌套，可以作为函数参数传递
+// case 分支的模式允许将匹配的值绑定到一个局部常量或变量。这些局部常量或变量的作用域是当前分支。
+let anotherPoint = (2, 0)
+switch anotherPoint {
+case (let x, 0):
+    print("on the x-axis with an x value of \(x)")
+case (0, let y):
+    print("on the y-axis with a y value of \(y)")
+case let (x, y):
+    print("somewhere else at (\(x), \(y))")
+}
+// 输出 "on the x-axis with an x value of 2"
+// 这个switch语句不包含默认分支。这是因为最后一个分支 case let(x, y) 声明了一个可以匹配余下所有值的元组。这使得switch语句已经完备了，因此不需要再书写默认分支。
 
+// fallthrough关键字会使得当前分支执行完后，继续执行下一分支。fallthrough关键字不会检查它下一个将会落入执行的 case 中的匹配条件。
+let integerToDescribe = 5
+var description = "The number \(integerToDescribe) is"
+switch integerToDescribe {
+case 2, 3, 5, 7, 11, 13, 17, 19:
+    description += " a prime number, and also"
+    fallthrough
+default:
+    description += " an integer."
+}
+print(description)
+// 输出 "The number 5 is a prime number, and also an integer."
+
+
+// continue语句告诉一个循环体立刻停止本次循环迭代，重新开始下次循环迭代
+let puzzleInput = "great minds think alike"
+var puzzleOutput = ""
+for character in puzzleInput.characters {
+    switch character {
+    case "a", "e", "i", "o", "u", " ":
+        continue
+    default:
+        puzzleOutput.append(character)
+    }
+}
+print(puzzleOutput)
+// 输出 "grtmndsthnklk"
+
+
+// break语句会立刻结束一个switch代码块或者一个循环体的执行
+let numberSymbol: Character = "三"  // 简体中文里的数字 3
+var possibleIntegerValue: Int?
+switch numberSymbol {
+case "1", "١", "一", "๑":
+    possibleIntegerValue = 1
+case "2", "٢", "二", "๒":
+    possibleIntegerValue = 2
+case "3", "٣", "三", "๓":
+    possibleIntegerValue = 3
+case "4", "٤", "四", "๔":
+    possibleIntegerValue = 4
+default:
+    break  // 因为每一个 case 分支都必须包含至少一条语句，不包含语句的分支是错误的。因此，在确实需要显式忽略该分支时，就使用break
+}
+if let integerValue = possibleIntegerValue {
+    print("The integer value of \(numberSymbol) is \(integerValue).")
+} else {
+    print("An integer value could not be found for \(numberSymbol).")
+}
+// 输出 "The integer value of 三 is 3."
+
+
+// 带标签的语句
+// 标签只能标记在一个循环体或者 switch 代码块之前，且与循环或switch语句的关键字在同一行。当 break 或者 continue 后跟上这个标签，可以控制该标签代表对象的中断或者执行。
+let finalSquare = 25
+var board = [Int](count: finalSquare + 1, repeatedValue: 0)
+board[03] = +08; board[06] = +11; board[09] = +09; board[10] = +02
+board[14] = -10; board[19] = -11; board[22] = -02; board[24] = -08
+var square = 0
+var diceRoll = 0
+gameLoop: while square != finalSquare {
+    if ++diceRoll == 7 { diceRoll = 1 }
+    switch square + diceRoll {
+    case finalSquare:
+        // 到达最后一个方块，游戏结束
+        break gameLoop
+    case let newSquare where newSquare > finalSquare:
+        // 超出最后一个方块，再掷一次骰子
+        continue gameLoop
+    default:
+        // 本次移动有效
+        square += diceRoll
+        square += board[square]
+    }
+}
+print("Game over!")
+
+
+// 函数
+// 函数是一个 first-class 类型，他们可以嵌套定义，可以作为函数参数传递
+
+//函数参数都有一个外部参数名（external parameter name）和一个局部参数名（local parameter name）。外部参数名用于在函数调用时标注传递给函数的参数，局部参数名在函数的实现内部使用。
+// 在没有显式指定外部参数名下，第一个参数默认只有局部参数名，没有外部参数名；第二个以及随后的参数使用其局部参数名作为外部参数名。
+// 所有参数必须有独一无二的局部参数名，但是多个参数可以有相同的外部参数名。
 // 函数文档可使用 reStructedText 格式直接写在函数的头部
 /**
     A greet operation
@@ -635,14 +871,84 @@ default: // 在 Swift 里，switch 语句的 case 必须处理所有可能的情
 func greet(name: String, day: String) -> String {
     return "Hello \(name), today is \(day)."
 }
-greet("Bob", "Tuesday")
+greet("Bob", day: "Tuesday")  // 有指定外部参数名（不管是显式还是隐式指定），在函数调用时必须使用外部参数名
 
-// 函数参数前带 `#` 表示外部参数名和内部参数名使用同一个名称。
-// 第二个参数表示外部参数名使用 `externalParamName` ，内部参数名使用 `localParamName`
-func greet2(#requiredName: String, externalParamName localParamName: String) -> String {
-    return "Hello \(requiredName), the day is \(localParamName)"
+// 可以在局部参数名前显式指定外部参数名，中间以空格分隔。例如 to 和 and 分别是第一个参数和第二个参数的外部参数名。
+func sayHello(to person: String, and anotherPerson: String) -> String {
+    return "Hello \(person) and \(anotherPerson)!"
 }
-greet2(requiredName:"John", externalParamName: "Sunday")    // 调用时，使用命名参数来指定参数的值
+print(sayHello(to: "Bill", and: "Ted"))  // prints "Hello Bill and Ted!"
+
+// 如果你不想为第二个及后续的参数设置外部参数名，用一个下划线（_）代替一个明确的外部参数名。
+func someFunction(firstParameterName: Int, _ secondParameterName: Int) {
+    // function body goes here
+    // firstParameterName and secondParameterName refer to
+    // the argument values for the first and second parameters
+}
+someFunction(1, 2)  // 两个参数现在都没有指定外部参数名，因此，函数调用时不能使用外部参数名
+
+// 可以在函数体中为每个参数定义默认值（Deafult Values）。当默认值被定义后，调用这个函数时可以忽略这个参数。
+// 带默认值的参数可以位于参数列表的任何位置，但建议放在参数列表的最后。
+func someFunction(parameterWithDefault: Int = 12) {
+    // function body goes here
+    // if no arguments are passed to the function call,
+    // value of parameterWithDefault is 12
+}
+someFunction(6) // parameterWithDefault is 6
+someFunction() // parameterWithDefault is 12
+
+// 可变参数
+// 一个可变参数（variadic parameter）可以接受零个或多个值。一个函数最多只能有一个可变参数。
+func arithmeticMean(numbers: Double...) -> Double {
+    var total: Double = 0
+    for number in numbers {
+        total += number
+    }
+    return total / Double(numbers.count)
+}
+arithmeticMean(1, 2, 3, 4, 5)   // returns 3.0, which is the arithmetic mean of these five numbers
+arithmeticMean(3, 8.25, 18.75)  // returns 10.0, which is the arithmetic mean of these three numbers
+// 如果函数有一个或多个带默认值的参数，而且还有一个可变参数，那么把可变参数放在参数表的最后。
+
+// 函数参数默认是常量。试图在函数体中更改参数值将会导致编译错误。
+// 通过在参数名前加关键字 var 来定义变量参数。可以在函数体中更改变量参数的值。
+func alignRight(var string: String, totalLength: Int, pad: Character) -> String {
+    let amountToPad = totalLength - string.characters.count
+    if amountToPad < 1 {
+        return string
+    }
+    let padString = String(pad)
+    for _ in 1...amountToPad {
+        string = padString + string
+    }
+    return string
+}
+let originalString = "hello"
+let paddedString = alignRight(originalString, totalLength: 10, pad: "-")
+// paddedString is equal to "-----hello"
+// originalString is still equal to "hello"
+
+// 如果对函数参数的更改，在函数结束后仍然存在，则要使用 inout 参数。
+// 如果你用 inout 标记一个参数，这个参数不能被 var 或者 let 标记。
+func swapTwoInts(inout a: Int, inout _ b: Int) {
+    let temporaryA = a
+    a = b
+    b = temporaryA
+}
+// 只能传递变量给输入输出参数。你不能传入常量或者字面量（literal value），因为这些量是不能被修改的。
+var someInt = 3
+var anotherInt = 107
+swapTwoInts(&someInt, &anotherInt)  // 当传入的参数作为输入输出参数时，需要在参数名前加&符，表示这个值可以被函数修改
+print("someInt is now \(someInt), and anotherInt is now \(anotherInt)"  // prints "someInt is now 107, and anotherInt is now 3"
+// 输入输出参数不能有默认值，而且也不能是可变参数。
+
+
+// 无返回值函数
+// 没有定义返回类型的函数实际上会返回一个特殊的值 —— Void。它其实是一个空的元组（tuple），没有任何元素，可以写成()。
+func sayGoodbye(personName: String) {
+    print("Goodbye, \(personName)!")
+}
+sayGoodbye("Dave")  // prints "Goodbye, Dave!"
 
 // 函数可以通过元组 (tuple) 返回多个值
 func getGasPrices() -> (Double, Double, Double) {
@@ -655,38 +961,66 @@ let (_, price1, _) = pricesTuple // price1 == 3.69
 print(price1 == pricesTuple.1) // true
 print("Gas price: \(price)")
 
-// 可变参数
-func setup(numbers: Int...) {
-    // 可变参数是个数组
-    let number = numbers[0]
-    let argCount = numbers.count
-}
-
-// 函数变量以及函数作为返回值返回
-func makeIncrementer() -> (Int -> Int) {
-    func addOne(number: Int) -> Int {
-        return 1 + number
+// 可以返回可选元组
+func minMax(array: [Int]) -> (min: Int, max: Int)? {  // 返回的元组也可以带有元素名
+    if array.isEmpty { return nil }
+    var currentMin = array[0]
+    var currentMax = array[0]
+    for value in array[1..<array.count] {
+        if value < currentMin {
+            currentMin = value
+        } else if value > currentMax {
+            currentMax = value
+        }
     }
-    return addOne
+    return (currentMin, currentMax)
 }
-var increment = makeIncrementer()
-increment(7)
-
-// 强制进行指针传递 (引用传递)，使用 `inout` 关键字修饰函数参数
-func swapTwoInts(inout a: Int, inout b: Int) {
-    let tempA = a
-    a = b
-    b = tempA
+if let bounds = minMax([8, -6, 2, 109, 3, 71]) {
+    print("min is \(bounds.min) and max is \(bounds.max)")  // 通过元素名称来访问，而不是通过整数索引
 }
-var someIntA = 7
-var someIntB = 3
-swapTwoInts(&someIntA, &someIntB)
-print(someIntB) // 7
+// prints "min is -6 and max is 109"
+
+// 函数类型
+func addTwoInts(a: Int, _ b: Int) -> Int {
+    return a + b
+}
+var mathFunction: (Int, Int) -> Int = addTwoInts
+print("Result: \(mathFunction(2, 3))")  // prints "Result: 5"
+func multiplyTwoInts(a: Int, _ b: Int) -> Int {
+    return a * b
+}
+mathFunction = multiplyTwoInts
+print("Result: \(mathFunction(2, 3))")  // prints "Result: 6"
+let anotherMathFunction = addTwoInts  // 类型推断
+
+// 函数类型作为参数类型
+func printMathResult(mathFunction: (Int, Int) -> Int, _ a: Int, _ b: Int) {
+    print("Result: \(mathFunction(a, b))")
+}
+printMathResult(addTwoInts, 3, 5)  // prints "Result: 8"
+
+// 函数类型作为返回类型，以及嵌套函数
+func chooseStepFunction(backwards: Bool) -> (Int) -> Int {
+    func stepForward(input: Int) -> Int { return input + 1 }  // 嵌套函数
+    func stepBackward(input: Int) -> Int { return input - 1 }
+    return backwards ? stepBackward : stepForward
+}
+var currentValue = -4
+let moveNearerToZero = chooseStepFunction(currentValue > 0)
+// moveNearerToZero now refers to the nested stepForward() function
+while currentValue != 0 {
+    print("\(currentValue)... ")
+    currentValue = moveNearerToZero(currentValue)
+}
+print("zero!")
+// -4...
+// -3...
+// -2...
+// -1...
+// zero!
 
 
-//
-// MARK: 闭包
-//
+// 闭包
 var numbers = [1, 2, 6]
 
 // 函数是闭包的一个特例 ({})
