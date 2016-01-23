@@ -1020,27 +1020,29 @@ print("zero!")
 // zero!
 
 
-// 闭包
-var numbers = [1, 2, 6]
+// 闭包是自包含的函数代码块，可以在代码中被传递和使用。
+// 闭包有三种形式：
+//   全局函数，是一个有名字但不会捕获任何值的闭包；
+//   嵌套函数，是一个有名字并可以捕获其封闭函数域内值的闭包；
+//   闭包表达式，是一个利用轻量级语法所写的可以捕获其上下文中变量或常量值的匿名闭包。
 
-// 函数是闭包的一个特例 ({})
-
-// 闭包实例
-// `->` 分隔了闭包的参数和返回值
-// `in` 分隔了闭包头 (包括参数及返回值) 和闭包体
-// 下面例子中，`map` 的参数是一个函数类型，它的功能是把数组里的元素作为参数，逐个调用 `map` 参数传递进来的函数。
-numbers.map({
-    (number: Int) -> Int in
-    let result = 3 * number
-    return result
+// 闭包表达式
+let names = ["Chris", "Alex", "Ewa", "Barry", "Daniella"]
+var reversed = names.sort({ (s1: String, s2: String) -> Bool in
+    return s1 > s2
 })
 
-// 当闭包的参数类型和返回值都是己知的情况下，且只有一个语句作为其返回值时，我们可以简化闭包的写法
-numbers = numbers.map({ number in 3 * number })
-// 我们也可以使用 $0, $1 来指代第 1 个，第 2 个参数，上面的语句最终可简写为如下形式
-// numbers = numbers.map({ $0 * 3 })
+// 闭包表达式可以使用常量、变量和inout类型作为参数，但不能提供默认值。也可以在参数列表的最后使用可变参数。元组也可以作为参数和返回值。
 
-print(numbers) // [3, 6, 18]
+// 当闭包表达式的参数类型和返回值都可以通过类型推断，我们可以省略参数的类型和返回类型。
+// 这里sort()的参数必须是 (String, String) -> Bool 类型的函数。
+reversed = names.sort( { s1, s2 in return s1 > s2 } )
+// 闭包表达式体只有一条语句时，可以省略 return：
+reversed = names.sort( { s1, s2 in s1 > s2 } )
+// 闭包表达式中可以使用 $0、$1、……， 来指代第 1 个、第 2 个参数、……。因此，参数也可以省略：
+reversed = names.sort( { $0 > $1 } )
+// Swift 的 String 类型定义了（>）运算符就是闭包表达式要做的事情：
+reversed = names.sort(>)
 
 // 简洁的闭包
 numbers = sorted(numbers) { $0 > $1 }
