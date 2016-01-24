@@ -1023,7 +1023,7 @@ print("zero!")
 // 闭包是自包含的函数代码块，可以在代码中被传递和使用。
 // 闭包有三种形式：
 //   全局函数，是一个有名字但不会捕获任何值的闭包；
-//   嵌套函数，是一个有名字并可以捕获其封闭函数域内值的闭包；
+//   嵌套函数，是一个有名字并可以捕获其包围函数内所有的参数以及定义的常量和变量的闭包；
 //   闭包表达式，是一个利用轻量级语法所写的可以捕获其上下文中变量或常量值的匿名闭包。
 
 // 闭包表达式
@@ -1044,17 +1044,66 @@ reversed = names.sort( { $0 > $1 } )
 // Swift 的 String 类型定义了（>）运算符就是闭包表达式要做的事情：
 reversed = names.sort(>)
 
-// 简洁的闭包
-numbers = sorted(numbers) { $0 > $1 }
-// 函数的最后一个参数可以放在括号之外，上面的语句是这个语句的简写形式
-// numbers = sorted(numbers, { $0 > $1 })
+// 尾随闭包（Trailing Closures）
+// 当闭包表达式作为函数的最后一个参数时，可以将这个尾随闭包书写在函数参数列表括号之后：
+reversed = names.sort() { $0 > $1 }
+// 如果函数只有闭包表达式一个参数，当使用尾随闭包时，可以把()省略掉：
+reversed = names.sort { $0 > $1 }
 
-print(numbers) // [18, 6, 3]
+// 捕获值（Capturing Values）
+func makeIncrementor(forIncrement amount: Int) -> () -> Int {  // 返回值是一个不带参数的函数
+    var runningTotal = 0
+    func incrementor() -> Int {
+        runningTotal += amount  // 嵌套函数可以捕获其包围函数的所有参数以及定义的常量和变量
+        return runningTotal
+    }
+    return incrementor
+}
+// 捕获引用保证了runningTotal和amount变量在调用完makeIncrementer后不会消失，并且保证了在下一次执行incrementer函数时，runningTotal依旧存在。
+let incrementByTen = makeIncrementor(forIncrement: 10)
+incrementByTen()  // 返回的值为10
+incrementByTen()  // 返回的值为20
+incrementByTen()  // 返回的值为30
+// 如果您创建了另一个incrementor，它会有属于它自己的一个全新、独立的runningTotal变量的引用：
+let incrementBySeven = makeIncrementor(forIncrement: 7)
+incrementBySeven()  // 返回的值为7
+// 再次调用原来的incrementByTen会在原来的变量runningTotal上继续增加值，该变量和incrementBySeven中捕获的变量没有任何联系：
+incrementByTen()  // 返回的值为40
 
-// 超级简洁的闭包，因为 `<` 是个操作符函数
-numbers = sorted(numbers, < )
+// 闭包是引用类型。无论将闭包赋值给一个常量还是变量，实际上都是将常量或变量的值设置为对应闭包的引用。
+// 这也意味着如果将闭包赋值给了两个不同的常量或变量，两个值都会指向同一个闭包：
+let alsoIncrementByTen = incrementByTen
+alsoIncrementByTen()  // 返回的值为50
 
-print(numbers) // [3, 6, 18]
+// 逃逸闭包(Escaping Closures)
+// 当一个闭包作为参数传到一个函数中，但是这个闭包在函数返回之后才被执行，我们称该闭包从函数中逃逸。
+var completionHandlers: [() -> Void] = []
+func someFunctionWithEscapingClosure(completionHandler: () -> Void) {
+    completionHandlers.append(completionHandler)
+}  // 闭包 completionHandler 被保存在一个函数外部定义的数组中，在 someFunctionWithEscapingClosure 返回后还可以执行。
+
+// 非逃逸闭包(Nonescaping Closures)
+// 当你定义接受闭包作为参数的函数时，你可以在闭包参数名之前标注 @noescape，用来指明这个闭包是不允许“逃逸”出这个函数的，即确保闭包在函数结束之后就没用了，从而可以进行一些比较激进的优化。
+func someFunctionWithNoescapeClosure(@noescape closure: () -> Void) {  // () -> Void 表示没有参数，没有返回值的函数
+    closure()
+}
+// 标注 @noescape 的闭包参数不能被保存在一个函数外部定义的变量中，否则会获得一个编译错误。
+
+// 将闭包标注为 @noescape 使你能在闭包中隐式地引用 self：
+class SomeClass {
+    var x = 10
+    func doSomething() {
+        someFunctionWithEscapingClosure { self.x = 100 }
+        someFunctionWithNoescapeClosure { x = 200 }  // 可以隐式地引用 self
+    }
+}
+let instance = SomeClass()
+instance.doSomething()
+print(instance.x)  // prints "200"
+completionHandlers.first?()
+print(instance.x)  // prints "100"
+
+// 自动闭包（Autoclosures）
 
 
 // 错误处理
