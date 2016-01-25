@@ -1093,7 +1093,7 @@ func someFunctionWithNoescapeClosure(@noescape closure: () -> Void) {  // () -> 
 class SomeClass {
     var x = 10
     func doSomething() {
-        someFunctionWithEscapingClosure { self.x = 100 }
+        someFunctionWithEscapingClosure { self.x = 100   // 逃逸闭包在调用时可能会引入同名的标识符，因此，通常不能省略 self
         someFunctionWithNoescapeClosure { x = 200 }  // 可以隐式地引用 self
     }
 }
@@ -1103,7 +1103,33 @@ print(instance.x)  // prints "200"
 completionHandlers.first?()
 print(instance.x)  // prints "100"
 
+// 延迟求值
+// 闭包让你能够延迟求值，因为代码段不会被执行直到你调用这个闭包。
+var customersInLine = ["Chris", "Alex", "Ewa", "Barry", "Daniella"]
+print(customersInLine.count)  // prints "5"
+let customerProvider = { customersInLine.removeAtIndex(0) }
+print(customersInLine.count)  // prints "5"
+print("Now serving \(customerProvider())!")  // prints "Now serving Chris!"
+print(customersInLine.count)  // prints "4"
+
 // 自动闭包（Autoclosures）
+// 自动闭包是一种自动创建的闭包，它能将一个普通的表达式包装成闭包：
+func serveCustomer(@autoclosure customerProvider: () -> String) {  // 通过将参数标记为 @autoclosure 来接收一个自动闭包
+    print("Now serving \(customerProvider())!")
+}
+serveCustomer(customersInLine.removeAtIndex(0))  // prints "Now serving Alex!"
+// 如果参数没有标记 @autoclosure，则需要使用显式闭包：serveCustomer( { customersInLine.removeAtIndex(0) } )
+// @autoclosure特性暗含了@noescape特性。如果你想让这个闭包可以“逃逸”，则应该使用@autoclosure(escaping)特性：
+var customerProviders: [() -> String] = []
+func collectCustomerProviders(@autoclosure(escaping) customerProvider: () -> String) {
+    customerProviders.append(customerProvider)
+}
+collectCustomerProviders(customersInLine.removeAtIndex(0))  // 没有调用传入的 customerProvider 闭包，而是将闭包追加到了 customerProviders 数组中
+collectCustomerProviders(customersInLine.removeAtIndex(0))
+print("Collected \(customerProviders.count) closures.")  // prints "Collected 3 closures."
+for customerProvider in customerProviders {
+    print("Now serving \(customerProvider())!")  // 调用闭包
+}
 
 
 // 错误处理
@@ -1154,25 +1180,123 @@ assert(age >= 0, "A person's age cannot be less than zero")
 // 因为 age < 0，所以断言会触发，第二个参数（可选）表示的调试信息被输出到控制台，程序终止。
 
 
-//
-// MARK: 结构体
-//
+// 结构体和类
+// Swift 中类和结构体的共同点：
+//   定义属性用于存储值
+//   定义方法用于提供功能
+//   定义附属脚本用于访问值
+//   定义构造器用于生成初始化值
+//   通过扩展以增加默认实现的功能
+//   实现协议以提供某种标准功能
+// 与结构体相比，类还有如下的附加功能：
+//   继承允许一个类继承另一个类的特征
+//   类型转换允许在运行时检查和解释一个类实例的类型
+//   析构器允许一个类实例释放任何其所被分配的资源
+//   引用计数允许对一个类的多次引用
+struct Resolution {
+    var width = 0
+    var height = 0
+}
+class VideoMode {
+    var resolution = Resolution()
+    var interlaced = false
+    var frameRate = 0.0
+    var name: String?
+}
+// 空构造器会将属性初始化为默认值
+let someResolution = Resolution()
+let someVideoMode = VideoMode()
+// 使用点语法（dot syntax），你可以访问实例的属性：
+print("The width of someResolution is \(someResolution.width)")  // 输出 "The width of someResolution is 0"
+someVideoMode.resolution.width = 1280
+print("The width of someVideoMode is now \(someVideoMode.resolution.width)")  // 输出 "The width of someVideoMode is now 1280"
 
-// 结构体和类非常类似，可以有属性和方法
+// 所有结构体都有一个隐含的以所有存储属性为参数的构造器，用于初始化新结构体实例中成员的属性。而类则没有这样的隐含构造器。
+let hd = Resolution(width: 1920, height: 1080)
 
-struct NamesTable {
-    let names = [String]()
+// 结构体是值类型，而类是引用类型。
+// 实际上，在 Swift 中，所有的基本类型：整数（Integer）、浮点数（floating-point）、布尔值（Boolean）、字符串（string)、数组（array）和字典（dictionary），都是值类型，并且在底层都是以结构体的形式所实现。 
+var cinema = hd  // cinema的值其实是hd的一个拷贝副本，而不是hd本身
+let alsoSomeVideoMode = someVideoMode  // alsoSomeVideoMode 和 someVideoMode 实际上引用的是相同的VideoMode实例
+// 对于值类型，编译器在底层只在绝对必要时才执行实际的拷贝，Swift 管理所有的值拷贝以确保性能最优化。
 
-    // 自定义下标运算符
-    subscript(index: Int) -> String {
-        return names[index]
+// 存储属性就是存储在特定类或结构体的实例里的一个常量或变量，存储属性只能用于类和结构体。
+struct FixedLengthRange {
+    var firstValue: Int
+    let length: Int  // 常量存储属性可以在构造器中初始化
+}
+var rangeOfThreeItems = FixedLengthRange(firstValue: 0, length: 3)  // 该区间表示整数0，1，2
+rangeOfThreeItems.firstValue = 6  // 该区间现在表示整数6，7，8
+let rangeOfFourItems = FixedLengthRange(firstValue: 0, length: 4)  // 创建了一个结构体的实例并将其赋值给一个常量，则无法修改该实例的任何属性，即使定义了变量存储属性
+// rangeOfFourItems.firstValue = 6  // 尽管 firstValue 是个变量属性，这里还是会报错
+// 这种行为是由于结构体（struct）属于值类型。当值类型的实例被声明为常量的时候，它的所有属性也就成了常量。
+// 属于引用类型的类（class）则不一样。把一个引用类型的实例赋给一个常量后，仍然可以修改该实例的变量属性。
+
+// 延迟存储属性是指当第一次被调用的时候才会计算其初始值的属性。在属性声明前使用lazy来标示一个延迟存储属性。延迟存储属性必须声明成变量（使用var关键字）。
+class DataImporter { // DataImporter 是一个负责将外部文件中的数据导入的类。这个类的初始化会消耗不少时间。
+    var fileName = "data.txt"
+    // 这里会提供数据导入功能
+}
+class DataManager {
+    lazy var importer = DataImporter()
+    var data = [String]()
+    // 这里会提供数据管理功能
+}
+let manager = DataManager()
+manager.data.append("Some data")
+manager.data.append("Some more data")  
+// DataImporter 实例的 importer 属性还没有被创建。importer属性只有在第一次被访问的时候才被创建，比如访问它的属性fileName时：
+print(manager.importer.fileName)  // DataImporter 实例的 importer 属性现在被创建了
+// 输出 "data.txt”
+// 如果一个被标记为lazy的属性在没有初始化时就同时被多个线程访问，则无法保证该属性只会被初始化一次。
+
+// 计算属性不直接存储值，而是提供一个 getter 和一个可选的 setter，来间接获取和设置其他属性或变量的值。计算属性可以用于类、结构体和枚举。
+struct Point {
+    var x = 0.0, y = 0.0
+}
+struct Size {
+    var width = 0.0, height = 0.0
+}
+struct Rect {
+    var origin = Point()
+    var size = Size()
+    var center: Point {  // center 是计算属性
+        get {  // center 属性的 getter
+            let centerX = origin.x + (size.width / 2)
+            let centerY = origin.y + (size.height / 2)
+            return Point(x: centerX, y: centerY)
+        }
+        set(newCenter) {  // center 属性的 setter。
+            origin.x = newCenter.x - (size.width / 2)
+            origin.y = newCenter.y - (size.height / 2)
+        }
+        // 如果省略setter的参数。则使用默认参数名称 newValue：
+        /* set {
+            origin.x = newValue.x - (size.width / 2)
+            origin.y = newValue.y - (size.height / 2)
+        } */
     }
 }
+var square = Rect(origin: Point(x: 0.0, y: 0.0),
+    size: Size(width: 10.0, height: 10.0))
+let initialSquareCenter = square.center  // 调用 center 属性的 getter 来获取它的值
+square.center = Point(x: 15.0, y: 15.0)  // 调用 center 属性的 setter 来修改属性 origin 的 x 和 y 的值
+print("square.origin is now at (\(square.origin.x), \(square.origin.y))")  // 输出 "square.origin is now at (10.0, 10.0)”
 
-// 结构体有一个自动生成的隐含的命名构造函数
-let namesTable = NamesTable(names: ["Me", "Them"])
-let name = namesTable[1]
-print("Name is \(name)") // Name is Them
+// 只有 getter 没有 setter 的计算属性就是只读计算属性。只读计算属性总是返回一个值，可以通过点运算符访问，但不能设置新的值。只读计算属性的声明可以去掉get关键字和花括号：
+struct Cuboid {
+    var width = 0.0, height = 0.0, depth = 0.0
+    var volume: Double {  // volume 是只读计算属性。必须使用 var 关键字定义计算属性，包括只读计算属性，因为它们的值不是固定的。volume 的值依赖于 width、height 和 depth，还是会变化的。
+        return width * height * depth
+    }
+}
+let fourByFiveByTwo = Cuboid(width: 4.0, height: 5.0, depth: 2.0)
+print("the volume of fourByFiveByTwo is \(fourByFiveByTwo.volume)")
+// 输出 "the volume of fourByFiveByTwo is 40.0"
+
+// 属性观察器监控和响应属性值的变化，每次属性被设置值的时候都会调用属性观察器，甚至新值和当前值相同的时候也不例外。
+// 可以为除了延迟存储属性之外的其他存储属性添加属性观察器，也可以通过重写属性的方式为继承的属性（包括存储属性和计算属性）添加属性观察器。
+// 不需要为非重写的计算属性添加属性观察器，因为可以通过它的 setter 直接监控和响应值的变化。
 
 //
 // MARK: 类
@@ -1301,56 +1425,125 @@ if let circle = myEmptyCircle {
 }
 
 
-//
-// MARK: 枚举
-//
+// 枚举。枚举是值类型。
+// Swift 的枚举成员在被创建时不会被赋予一个默认的整型值。在上面的CompassPoint例子中，North、South、East和West不会被隐式地赋值为0、1、2和3，它们就表示自己。
+enum CompassPoint {
+    case North
+    case South
+    case East
+    case West
+}
 
-// 枚举可以像类一样，拥有方法
+// 多个成员值可以出现在同一行上，用逗号隔开：
+enum Planet {
+    case Mercury, Venus, Earth, Mars, Jupiter, Saturn, Uranus, Neptune
+}
 
-enum Suit {
-    case Spades, Hearts, Diamonds, Clubs
-    func getIcon() -> String {
-        switch self {
-        case .Spades: return "♤"
-        case .Hearts: return "♡"
-        case .Diamonds: return "♢"
-        case .Clubs: return "♧"
-        }
+// 每个枚举定义了一个全新的类型。
+var directionToHead = CompassPoint.West
+// 一旦directionToHead被声明为CompassPoint类型，你可以使用更简短的点语法将其设置为另一个CompassPoint的值：
+directionToHead = .East
+// 或者：var directionToHead: CompassPoint = .East
+// 可以使用switch语句匹配单个枚举值：
+switch directionToHead {
+    case .North:
+        print("Lots of planets have a north")
+    case .South:
+        print("Watch out for penguins")
+    case .East:
+        print("Where the sun rises")
+    case .West:
+        print("Where the skies are blue")
+}
+
+// 关联值（Associated Values）
+enum Barcode {
+    case UPCA(Int, Int, Int, Int)
+    case QRCode(String)
+}
+var productBarcode = Barcode.UPCA(8, 85909, 51226, 3)
+// 上面的例子创建了一个名为productBarcode的变量，并将Barcode.UPCA赋值给它，关联的元组值为(8, 85909, 51226, 3)。
+
+// 可以在 switch 的 case 分支代码中提取每个关联值作为一个常量（用let前缀）或者作为一个变量（用var前缀）来使用：
+switch productBarcode {
+case .UPCA(let numberSystem, let manufacturer, let product, let check):
+    print("UPC-A: \(numberSystem), \(manufacturer), \(product), \(check).")
+case .QRCode(let productCode):
+    print("QR code: \(productCode).")
+}
+// 如果一个枚举成员的所有关联值都被提取为常量，或者都被提取为变量，为了简洁，可以只在成员名称前标注一个let或者var：
+switch productBarcode {
+case let .UPCA(numberSystem, manufacturer, product, check):
+    print("UPC-A: \(numberSystem), \(manufacturer), \(product), \(check).")
+case let .QRCode(productCode):
+    print("QR code: \(productCode).")
+}
+
+// 原始值（Raw Values）
+// 可以给枚举成员赋予一个值（称为“原始”值），原始值的类型可以是字符串、字符、整型或浮点数。所有枚举量的原始值类型必须相同，且每个原始值在枚举声明中必须是唯一的。
+enum ASCIIControlCharacter: Character {
+    case Tab = "\t"
+    case LineFeed = "\n"
+    case CarriageReturn = "\r"
+}
+// 原始值和关联值是不同的。原始值是在定义枚举时被预先填充的值。对于一个特定的枚举成员，它的原始值始终不变。关联值是创建一个基于枚举成员的常量或变量时才设置的值，枚举成员的关联值可以变化。
+// 在使用原始值为整数或者字符串类型的枚举时，不需要显式地为每一个枚举成员设置原始值，Swift 将会自动为你赋值。
+enum Planet: Int  // 使用整型原始值
+    // 如果第一个枚举成员没有设置原始值，其原始值将为0。以后每个枚举量依次增加 1。例如：Planet.Venus 的隐式原始值为2，依次类推。
+    case Mercury = 1, Venus, Earth, Mars, Jupiter, Saturn, Uranus, Neptune
+}
+enum CompassPoint: String {  // 当使用字符串作为枚举类型的原始值时，每个枚举成员的隐式原始值为该枚举成员的名称。
+    case North, South, East, West
+}
+// 使用枚举成员的rawValue属性可以访问该枚举成员的原始值：
+let earthsOrder = Planet.Earth.rawValue  // earthsOrder 值为 3
+let sunsetDirection = CompassPoint.West.rawValue  // sunsetDirection 值为 "West"
+
+// 如果在定义枚举类型的时候使用了原始值，那么将会自动获得一个构造器，它接收一个叫做rawValue的参数，参数类型为原始值类型，返回值则是枚举成员或nil。
+let possiblePlanet = Planet(rawValue: 7)  // possiblePlanet 类型为 Planet?，值为 Planet.Uranus
+let positionToFind = 9
+if let somePlanet = Planet(rawValue: positionToFind) {
+    switch somePlanet {
+    case .Earth:
+        print("Mostly harmless")
+    default:
+        print("Not a safe place for humans")
+    }
+} else {
+    print("There isn't a planet at position \(positionToFind)")
+}
+// 输出 "There isn't a planet at position 9
+
+// 递归枚举（recursive enumeration）是一种枚举类型，它的枚举量使用该枚举类型的实例作为关联值。
+enum ArithmeticExpression {
+    case Number(Int)
+    indirect case Addition(ArithmeticExpression, ArithmeticExpression)  // indirect 表明枚举量 Addition 递归使用 ArithmeticExpression 的实例作为它的关联值
+    indirect case Multiplication(ArithmeticExpression, ArithmeticExpression)
+}
+// 在枚举类型开头加上indirect关键字来表明它的所有成员都是可递归的：
+indirect enum ArithmeticExpression {
+    case Number(Int)
+    case Addition(ArithmeticExpression, ArithmeticExpression)
+    case Multiplication(ArithmeticExpression, ArithmeticExpression)
+}
+
+// 要操作具有递归性质的数据结构，使用递归函数是一种直截了当的方式：
+func evaluate(expression: ArithmeticExpression) -> Int {
+    switch expression {
+    case .Number(let value):
+        return value
+    case .Addition(let left, let right):
+        return evaluate(left) + evaluate(right)
+    case .Multiplication(let left, let right):
+        return evaluate(left) * evaluate(right)
     }
 }
-
-// 当变量类型明确指定为某个枚举类型时，赋值时可以省略枚举类型
-var suitValue: Suit = .Hearts
-
-// 非整型的枚举类型需要在定义时赋值
-enum BookName: String {
-    case John = "John"
-    case Luke = "Luke"
-}
-print("Name: \(BookName.John.rawValue)")
-
-// 与特定数据类型关联的枚举
-enum Furniture {
-    // 和 Int 型数据关联的枚举记录
-    case Desk(height: Int)
-    // 和 String, Int 关联的枚举记录
-    case Chair(brand: String, height: Int)
-
-    func description() -> String {
-        switch self {
-        case .Desk(let height):
-            return "Desk with \(height) cm"
-        case .Chair(let brand, let height):
-            return "Chair of \(brand) with \(height) cm"
-        }
-    }
-}
-
-var desk: Furniture = .Desk(height: 80)
-print(desk.description())     // "Desk with 80 cm"
-var chair = Furniture.Chair(brand: "Foo", height: 40)
-print(chair.description())    // "Chair of Foo with 40 cm"
-
+// 计算 (5 + 4) * 2
+let five = ArithmeticExpression.Number(5)
+let four = ArithmeticExpression.Number(4)
+let sum = ArithmeticExpression.Addition(five, four)
+let product = ArithmeticExpression.Multiplication(sum, ArithmeticExpression.Number(2))
+print(evaluate(product))  // 输出 "18"
 
 //
 // MARK: 协议
