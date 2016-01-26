@@ -1238,7 +1238,7 @@ class DataImporter { // DataImporter 是一个负责将外部文件中的数据�
     // 这里会提供数据导入功能
 }
 class DataManager {
-    lazy var importer = DataImporter()
+    lazy var importer = DataImporter()  // 在初始化之前，importer 的值是 nil
     var data = [String]()
     // 这里会提供数据管理功能
 }
@@ -1295,8 +1295,267 @@ print("the volume of fourByFiveByTwo is \(fourByFiveByTwo.volume)")
 // 输出 "the volume of fourByFiveByTwo is 40.0"
 
 // 属性观察器监控和响应属性值的变化，每次属性被设置值的时候都会调用属性观察器，甚至新值和当前值相同的时候也不例外。
+// 父类的属性在子类的构造器中被赋值时，它在父类中的willSet和didSet观察器会被调用。
 // 可以为除了延迟存储属性之外的其他存储属性添加属性观察器，也可以通过重写属性的方式为继承的属性（包括存储属性和计算属性）添加属性观察器。
 // 不需要为非重写的计算属性添加属性观察器，因为可以通过它的 setter 直接监控和响应值的变化。
+// 可以为属性添加如下的一个或多个观察器：
+//   willSet 在新的值被设置之前调用。willSet 观察器会将新的属性值作为常量参数传入，可以为这个参数显式指定一个名称，否则使用默认名称 newValue；
+//   didSet 在新的值被设置之后立即调用。didSet 观察器会将旧的属性值作为参数传入，可以为该参数显式命名或者使用默认参数名 oldValue。
+// 如果在一个属性的 didSet 观察器里为它赋值，这个值会替换之前设置的值，但这不会造成属性观察器被再次调用。
+class StepCounter {
+    var totalSteps: Int = 0 {
+        willSet(newTotalSteps) {
+            print("About to set totalSteps to \(newTotalSteps)")
+        }
+        didSet {  // 使用默认的参数名 oldValue
+            if totalSteps > oldValue  {
+                print("Added \(totalSteps - oldValue) steps")
+            }
+        }
+    }
+}
+let stepCounter = StepCounter()
+stepCounter.totalSteps = 200
+// About to set totalSteps to 200
+// Added 200 steps
+stepCounter.totalSteps = 360
+// About to set totalSteps to 360
+// Added 160 steps
+stepCounter.totalSteps = 896
+// About to set totalSteps to 896
+// Added 536 steps
+
+// 计算属性和属性观察器所描述的功能也可以用于全局变量和局部变量。
+// 全局的常量或变量都是延迟计算的，跟延迟存储属性相似，不同的地方在于，全局的常量或变量不需要标记lazy修饰符。
+// 局部范围的常量或变量从不延迟计算，跟不延迟存储属性相似。
+
+// 类型属性用于定义某个类型所有实例共享的数据。
+// 存储型类型属性可以是变量或常量，计算型类型属性跟实例的计算型属性一样只能定义成变量属性。
+// 跟实例的存储型属性不同，必须给存储型类型属性指定默认值，因为类型本身没有构造器，也就无法在初始化过程中使用构造器给类型属性赋值。
+// 存储型类型属性是延迟初始化的，它们只有在第一次被访问的时候才会被初始化。即使它们被多个线程同时访问，系统也保证只会对其进行一次初始化，并且不需要对其使用 lazy 修饰符。
+struct SomeStructure {
+    static var storedTypeProperty = "Some value."
+    static var computedTypeProperty: Int {
+        return 1
+    }
+}
+enum SomeEnumeration {
+    static var storedTypeProperty = "Some value."
+    static var computedTypeProperty: Int {
+        return 6
+    }
+}
+class SomeClass {
+    static var storedTypeProperty = "Some value."
+    static var computedTypeProperty: Int {
+        return 27
+    }
+    class var overrideableComputedTypeProperty: Int {  // 关键字 class 表示这是一个类型的属性、方法或下标，且支持子类对父类的实现进行重写。static 相当于 final class。
+        return 107
+    }
+}
+print(SomeStructure.storedTypeProperty)  // 输出 "Some value."
+SomeStructure.storedTypeProperty = "Another value."
+print(SomeStructure.storedTypeProperty)  // 输出 "Another value.”
+print(SomeEnumeration.computedTypeProperty)  // 输出 "6"
+print(SomeClass.computedTypeProperty)  // 输出 "27"
+
+// 方法是与某些特定类型相关联的函数。类、结构体、枚举都可以定义实例方法和类型方法。
+
+// 实例方法
+class Counter {
+    var count = 0
+    func increment() {
+        ++count
+    }
+    func incrementBy(amount: Int, numberOfTimes: Int) {
+        count += amount * numberOfTimes
+    }
+    func reset() {
+        count = 0
+    }
+}
+let counter = Counter()  // 初始计数值是0
+counter.increment()  // 计数值现在是1
+counter.incrementBy(5, numberOfTimes: 3)  // counter 的值现在是 16
+counter.reset()  // 计数值现在是0
+
+// 类型的每一个实例都有一个隐含属性叫做 self，self 完全等同于该实例本身。
+struct Point {
+    var x = 0.0, y = 0.0
+    func isToTheRightOfX(x: Double) -> Bool {
+        return self.x > x
+    }
+}
+
+// 结构体和枚举是值类型。默认情况下，值类型的属性不能在它的实例方法中被修改。
+// 但是，可以为实例方法加上 mutating 关键字，然后就可以在方法内部改变结构体和枚举的属性值。
+struct Point {
+    var x = 0.0, y = 0.0
+    mutating func moveByX(deltaX: Double, y deltaY: Double) {
+        x += deltaX
+        y += deltaY
+    }
+}
+var somePoint = Point(x: 1.0, y: 1.0)
+somePoint.moveByX(2.0, y: 3.0)
+print("The point is now at (\(somePoint.x), \(somePoint.y))")  // 打印输出: "The point is now at (3.0, 4.0)"
+let fixedPoint = Point(x: 3.0, y: 3.0)  // 不能在结构体类型的常量上调用可变方法
+// fixedPoint.moveByX(2.0, y: 3.0)  // 这里将会报告一个错误
+
+// mutating 方法还可以给 self 属性赋予一个全新的实例，这个新实例会替换现存实例。
+struct Point2 {
+    var x = 0.0, y = 0.0
+    mutating func moveByX(deltaX: Double, y deltaY: Double) {
+        self = Point2(x: x + deltaX, y: y + deltaY)
+    }
+}
+
+// 枚举的可变方法可以把self设置为同一枚举类型中不同的成员：
+enum TriStateSwitch {
+    case Off, Low, High
+    mutating func next() {
+        switch self {
+        case Off:
+            self = Low
+        case Low:
+            self = High
+        case High:
+            self = Off
+        }
+    }
+}
+var ovenLight = TriStateSwitch.Low
+ovenLight.next()  // ovenLight 现在等于 .High
+ovenLight.next()  // ovenLight 现在等于 .Off
+
+// 类型方法
+struct LevelTracker {
+    static var highestUnlockedLevel = 1
+    static func unlockLevel(level: Int) { // 以 static 开头的为类型方法
+        if level > highestUnlockedLevel { highestUnlockedLevel = level }
+    }
+    static func levelIsUnlocked(level: Int) -> Bool {
+        return level <= highestUnlockedLevel
+    }
+    var currentLevel = 1
+    mutating func advanceToLevel(level: Int) -> Bool {
+        if LevelTracker.levelIsUnlocked(level) {
+            currentLevel = level
+            return true
+        } else {
+            return false
+        }
+    }
+}
+class Player {
+    var tracker = LevelTracker()
+    let playerName: String
+    func completedLevel(level: Int) {
+        LevelTracker.unlockLevel(level + 1)
+        tracker.advanceToLevel(level + 1)
+    }
+    init(name: String) {
+        playerName = name
+    }
+}
+// 在类型方法的方法体（body）中，self指向这个类型本身，而不是类型的某个实例。这意味着你可以用self来消除类型属性和类型方法参数之间的歧义（类似于我们在前面处理实例属性和实例方法参数时做的那样）。
+
+// 下标 （subscripts）可以定义在类、结构体和枚举中，是访问集合（collection），列表（list）或序列（sequence）中元素的快捷方式。它允许你通过在实例名称后面的方括号中传入一个或者多个索引值来对实例进行存取。
+struct TimesTable {
+    let multiplier: Int
+    subscript(index: Int) -> Int {  // 只读下标
+        return multiplier * index
+    }
+}
+let threeTimesTable = TimesTable(multiplier: 3)
+print("six times three is \(threeTimesTable[6])")  // 输出 "six times three is 18"
+
+// 一个类型可以定义多个下标，通过不同入参的数量和类型进行重载。
+
+// 下标不限于一维，它可以接受任意数量的入参，并且这些入参可以是任意类型。下标的返回值也可以是任意类型。下标可以使用变量参数和可变参数，但不能使用输入输出参数，也不能给参数设置默认值。
+struct Matrix {
+    let rows: Int, columns: Int
+    var grid: [Double]
+    init(rows: Int, columns: Int) {
+        self.rows = rows
+        self.columns = columns
+        grid = Array(count: rows * columns, repeatedValue: 0.0)
+    }
+    func indexIsValidForRow(row: Int, column: Int) -> Bool {
+        return row >= 0 && row < rows && column >= 0 && column < columns
+    }
+    subscript(row: Int, column: Int) -> Double {  // 可读写下标
+        get {
+            assert(indexIsValidForRow(row, column: column), "Index out of range")
+            return grid[(row * columns) + column]
+        }
+        set {
+            assert(indexIsValidForRow(row, column: column), "Index out of range")
+            grid[(row * columns) + column] = newValue
+        }
+    }
+}
+var matrix = Matrix(rows: 2, columns: 2)
+matrix[0, 1] = 1.5
+matrix[1, 0] = 3.2
+
+// 当 S 类继承 P 类时，S 类叫子类（subclass），P 类叫超类（或父类，superclass）。另外，不继承于其它类的类，称之为基类（base class）。
+// Swift 中的类并不是从一个通用的基类继承而来。如果你不为定义的类指定一个超类的话，这个类就自动成为基类。
+class Vehicle {  // 基类
+    var currentSpeed = 0.0
+    var description: String {
+        return "traveling at \(currentSpeed) miles per hour"
+    }
+    func makeNoise() {
+        // 什么也不做-因为车辆不一定会有噪音
+    }
+}
+class Bicycle: Vehicle {  // 子类
+    var hasBasket = false  // 子类新增的属性
+}
+
+// 重写（overriding）是指子类可以为继承来的实例方法、类方法、实例属性或下标提供自己定制的实现。类型的属性、方法或下标要将 static 换成 class 修饰符才可以被重写。
+// 在子类中可以通过 super 来访问超类版本的方法，属性或下标：super.someMethod()、super.someProperty、super[someIndex]。
+
+// 重写方法
+class Train: Vehicle {
+    override func makeNoise() {  // 重写父类 Vehicle 中继承下来的 makeNoise() 方法。override 不能省略。
+        print("Choo Choo")
+    }
+}
+let train = Train()
+train.makeNoise()  // 打印 "Choo Choo"
+
+// 重写属性。可以重写继承来的实例属性或类型属性。
+// 可以将一个继承来的只读属性重写为一个读写属性，只需要在重写版本的属性里提供 getter 和 setter 即可。但是，你不可以将一个继承来的读写属性重写为一个只读属性。
+// 如果你在重写属性中提供了 setter，那么你也一定要提供 getter。如果你不想在重写版本中的 getter 里修改继承来的属性值，你可以直接通过super.someProperty来返回继承来的值，其中someProperty是你要重写的属性的名字。
+class Car: Vehicle {
+    var gear = 1
+    override var description: String {
+        return super.description + " in gear \(gear)"
+    }
+}
+let car = Car()
+car.currentSpeed = 25.0
+car.gear = 3
+print("Car: \(car.description)")  // Car: traveling at 25.0 miles per hour in gear 3
+// 可以通过重写属性为一个继承来的属性添加属性观察器。
+class AutomaticCar: Car {
+    override var currentSpeed: Double {
+        didSet {
+            gear = Int(currentSpeed / 10.0) + 1
+        }
+    }
+}
+// 不可以为继承来的常量存储型属性或继承来的只读计算型属性添加属性观察器。这些属性的值是不可以被设置的，所以，为它们提供willSet或didSet实现是不恰当。
+// 不可以同时提供重写的 setter 和重写的属性观察器。如果你想观察属性值的变化，并且你已经为那个属性提供了定制的 setter，那么你在 setter 中就可以观察到任何值变化了。
+let automatic = AutomaticCar()
+automatic.currentSpeed = 35.0
+print("AutomaticCar: \(automatic.description)")  // AutomaticCar: traveling at 35.0 miles per hour in gear 4
+
+// 可以通过把方法，属性或下标标记为 final 来防止它们被重写。
+// 可以通过在关键字 class 前添加 final 修饰符来将整个类标记为 final 的。这样的类是不可被继承的，试图继承这样的类会导致编译报错。
 
 //
 // MARK: 类
@@ -1331,24 +1590,7 @@ internal class Rect: Shape {
         }
     }
 
-    // 延时加载的属性，只有这个属性第一次被引用时才进行初始化，而不是定义时就初始化
-    // subShape 值为 nil ，直到 subShape 第一次被引用时才初始化为一个 Rect 实例
-    lazy var subShape = Rect(sideLength: 4)
-
-    // 监控属性值的变化。
-    // 当我们需要在属性值改变时做一些事情，可以使用 `willSet` 和 `didSet` 来设置监控函数
-    // `willSet`: 值改变之前被调用
-    // `didSet`: 值改变之后被调用
-    var identifier: String = "defaultID" {
-        // `willSet` 的参数是即将设置的新值，参数名可以指定，如果没有指定，就是 `newValue`
-        willSet(someIdentifier) {
-            print(someIdentifier)
-        }
-        // `didSet` 的参数是已经被覆盖掉的旧的值，参数名也可以指定，如果没有指定，就是 `oldValue`
-        didSet {
-            print(oldValue)
-        }
-    }
+    
 
     // 命名构造函数 (designated inits)，它必须初始化所有的成员变量，
     // 然后调用父类的命名构造函数继续初始化父类的所有变量。
@@ -1425,7 +1667,8 @@ if let circle = myEmptyCircle {
 }
 
 
-// 枚举。枚举是值类型。
+// 枚举
+// 枚举是值类型。
 // Swift 的枚举成员在被创建时不会被赋予一个默认的整型值。在上面的CompassPoint例子中，North、South、East和West不会被隐式地赋值为0、1、2和3，它们就表示自己。
 enum CompassPoint {
     case North
