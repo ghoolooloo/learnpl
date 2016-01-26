@@ -1203,7 +1203,10 @@ class VideoMode {
     var frameRate = 0.0
     var name: String?
 }
-// 空构造器会将属性初始化为默认值
+// 如果结构体或类的所有属性都有默认值，同时没有自定义的构造器，也没有从父类中继承构造器，那么 Swift 会给这些结构体或类提供一个默认构造器。这个默认构造器将简单地创建一个所有属性值都设置为默认值的实例。
+// 这个限制可以防止当你已经定义了一个进行额外必要设置的复杂构造器之后，别人还是错误地使用了一个自动生成的构造器。
+// 假如你希望默认构造器、逐一属性构造器以及你自己的自定义构造器都能用来创建实例，可以将自定义的构造器写到扩展（extension）中。
+// 通过定义直接绑定的值称为默认值，而通过构造器绑定的值称为初始值。
 let someResolution = Resolution()
 let someVideoMode = VideoMode()
 // 使用点语法（dot syntax），你可以访问实例的属性：
@@ -1211,7 +1214,7 @@ print("The width of someResolution is \(someResolution.width)")  // 输出 "The 
 someVideoMode.resolution.width = 1280
 print("The width of someVideoMode is now \(someVideoMode.resolution.width)")  // 输出 "The width of someVideoMode is now 1280"
 
-// 所有结构体都有一个隐含的以所有存储属性为参数的构造器，用于初始化新结构体实例中成员的属性。而类则没有这样的隐含构造器。
+// 如果结构体没有提供自定义的构造器，也没有从父类中继承构造器，它们将自动获得一个以所有存储属性为参数的构造器（逐一属性构造器），用于初始化新结构体实例中成员的属性。而类则没有这样的隐含构造器。
 let hd = Resolution(width: 1920, height: 1080)
 
 // 结构体是值类型，而类是引用类型。
@@ -1295,7 +1298,8 @@ print("the volume of fourByFiveByTwo is \(fourByFiveByTwo.volume)")
 // 输出 "the volume of fourByFiveByTwo is 40.0"
 
 // 属性观察器监控和响应属性值的变化，每次属性被设置值的时候都会调用属性观察器，甚至新值和当前值相同的时候也不例外。
-// 父类的属性在子类的构造器中被赋值时，它在父类中的willSet和didSet观察器会被调用。
+// 为存储型属性设置默认值或者在构造器中为其赋值时，它们的值是被直接设置的，不会触发任何属性观察者。
+// 但是，父类的属性在子类的构造器中被赋值时，它在父类中的willSet和didSet观察器会被调用。
 // 可以为除了延迟存储属性之外的其他存储属性添加属性观察器，也可以通过重写属性的方式为继承的属性（包括存储属性和计算属性）添加属性观察器。
 // 不需要为非重写的计算属性添加属性观察器，因为可以通过它的 setter 直接监控和响应值的变化。
 // 可以为属性添加如下的一个或多个观察器：
@@ -1556,6 +1560,75 @@ print("AutomaticCar: \(automatic.description)")  // AutomaticCar: traveling at 3
 
 // 可以通过把方法，属性或下标标记为 final 来防止它们被重写。
 // 可以通过在关键字 class 前添加 final 修饰符来将整个类标记为 final 的。这样的类是不可被继承的，试图继承这样的类会导致编译报错。
+
+// Swift 中构造器以关键字 init 表示：
+struct Celsius {
+    var temperatureInCelsius: Double
+    init(fromFahrenheit fahrenheit: Double) {
+        temperatureInCelsius = (fahrenheit - 32.0) / 1.8
+    }
+    init(fromKelvin kelvin: Double) {
+        temperatureInCelsius = kelvin - 273.15
+    }
+}
+let boilingPointOfWater = Celsius(fromFahrenheit: 212.0)  // boilingPointOfWater.temperatureInCelsius 是 100.0
+let freezingPointOfWater = Celsius(fromKelvin: 273.15)    // freezingPointOfWater.temperatureInCelsius 是 0.0
+
+// 与函数或方法不同，如果在定义构造器时没有提供参数的外部名字，Swift 会为构造器的每个参数（包括第一个参数）自动生成一个跟内部名字相同的外部名。
+// 因此，构造器的参数总是带外部名字的，调用时要提供外部参数名字。如果不希望为构造器的某个参数提供外部名字，可以使用下划线(_)来：
+struct Celsius {
+    var temperatureInCelsius: Double
+    init(fromFahrenheit fahrenheit: Double) {
+        temperatureInCelsius = (fahrenheit - 32.0) / 1.8
+    }
+    init(fromKelvin kelvin: Double) {
+        temperatureInCelsius = kelvin - 273.15
+    }
+    init(_ celsius: Double){
+        temperatureInCelsius = celsius
+    }
+}
+let bodyTemperature = Celsius(37.0)  // bodyTemperature.temperatureInCelsius 为 37.0
+
+// 如果你定制的类型包含一个逻辑上允许取值为空的存储型属性，无论是因为它无法在初始化时赋值，还是因为它在之后某个时间点可以赋值为空，你都需要将它定义为可选类型。可选类型的属性将自动绑定默认值为nil。
+class SurveyQuestion {
+    let text: String
+    var response: String?
+    init(text: String) {
+        self.text = text  // 常量属性可以在定义它的类的构造器中初始化（不能在子类的构造器中初始化）。一旦常量属性被初始化，它将永远不可更改。
+    }
+    func ask() {
+        print(text)
+    }
+}
+let cheeseQuestion = SurveyQuestion(text: "Do you like cheese?")
+cheeseQuestion.ask()  // 输出 "Do you like cheese?"
+cheeseQuestion.response = "Yes, I do like cheese."
+
+// 构造器可以通过调用其它构造器来完成实例的部分构造过程。这一过程称为构造器代理。
+// 值类型（结构体和枚举类型）可以使用 self.init 在自定义的构造器中引用类型中的其它构造器。并且你只能在构造器内部调用 self.init。
+struct Size {
+    var width = 0.0, height = 0.0
+}
+struct Point {
+    var x = 0.0, y = 0.0
+}
+struct Rect {
+    var origin = Point()
+    var size = Size()
+    init() {}
+    init(origin: Point, size: Size) {
+        self.origin = origin
+        self.size = size
+    }
+    init(center: Point, size: Size) {
+        let originX = center.x - (size.width / 2)
+        let originY = center.y - (size.height / 2)
+        self.init(origin: Point(x: originX, y: originY), size: size)
+    }
+}
+
+
 
 //
 // MARK: 类
