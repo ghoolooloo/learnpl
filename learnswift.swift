@@ -351,6 +351,24 @@ if var definiteString = assumedString {
 }
 // 输出 "An implicitly unwrapped optional string."
 
+// 可选链（Optional Chaining）
+// 可选链返回的是可选类型，而强制展开返回的是非可选类型。
+// 当可选值为空时可选链只会得到 nil，然而强制展开将会触发运行时错误。
+class Person {
+    var residence: Residence?
+}
+class Residence {
+    var numberOfRooms = 1
+}
+let john = Person()
+let roomCount = john.residence!.numberOfRooms  // 强制会引发运行时错误，因为 residence 是 nil。
+if let roomCount = john.residence?.numberOfRooms { // 可选链（使用问号来替代原来的叹号）
+    print("John's residence has \(roomCount) room(s).")
+} else {
+    print("Unable to retrieve the number of rooms.")
+}
+// 打印 “Unable to retrieve the number of rooms.”
+
 
 // Swift 支持可保存任何数据类型(Class, Int, struct, 等)的变量
 var anyObjectVar: AnyObject = 7
@@ -1020,7 +1038,7 @@ print("zero!")
 // zero!
 
 
-// 闭包是自包含的函数代码块，可以在代码中被传递和使用。
+// 闭包是自包含的函数代码块，可以在代码中被传递和使用。闭包是引用类型的。
 // 闭包有三种形式：
 //   全局函数，是一个有名字但不会捕获任何值的闭包；
 //   嵌套函数，是一个有名字并可以捕获其包围函数内所有的参数以及定义的常量和变量的闭包；
@@ -1093,7 +1111,7 @@ func someFunctionWithNoescapeClosure(@noescape closure: () -> Void) {  // () -> 
 class SomeClass {
     var x = 10
     func doSomething() {
-        someFunctionWithEscapingClosure { self.x = 100   // 逃逸闭包在调用时可能会引入同名的标识符，因此，通常不能省略 self
+        someFunctionWithEscapingClosure { self.x = 100   // 逃逸闭包在调用时可能会引入同名的标识符，因此，不能省略 self
         someFunctionWithNoescapeClosure { x = 200 }  // 可以隐式地引用 self
     }
 }
@@ -1628,115 +1646,248 @@ struct Rect {
     }
 }
 
-
-
-//
-// MARK: 类
-//
-
-// 类和结构体的有三个访问控制级别，他们分别是 internal (默认), public, private
-// internal: 模块内部可以访问
-// public: 其他模块可以访问
-// private: 只有定义这个类或结构体的源文件才能访问
-
-public class Shape {
-    public func getArea() -> Int {
-        return 0;
+// 类的构造器分成两种：指定构造器和便利构造器。便利构造器要在 init 前加 convenience。
+// 每一个类都必须拥有至少一个指定构造器。在某些情况下，可通过继承了父类中的指定构造器而满足了这个条件。
+// 指定构造器必须调用其直接父类的的指定构造器。
+// 便利构造器必须调用同一类中定义的其它构造器。
+// 便利构造器必须最终导致一个指定构造器被调用。
+class Food {
+    var name: String
+    init(name: String) {  // 指定构造器
+        self.name = name
+    }
+    convenience init() {  // 便利构造器。自动提供的默认构造器总是指定构造器，但自定义的无参构造器，则可以是指定构造器，也可以是便利构造器。
+        self.init(name: "[Unnamed]")
     }
 }
 
-// 类的所有方法和属性都是 public 的
-// 如果你只是需要把数据保存在一个结构化的实例里面，应该用结构体
+// Swift 中的子类默认情况下不会继承父类的构造器。
+// 假设为子类中引入的所有新属性都提供了默认值，则如果子类没有定义任何指定构造器，它将自动继承所有父类的指定构造器。
+// 即使属性没有默认值，子类只要实现了父类的所有指定构造器（无论是通过自动继承过来的，还是提供了自定义实现），就会自动继承父类的所有便利构造器。
 
-internal class Rect: Shape {
-    // 值属性 (Stored properties)
-    var sideLength: Int = 1
-
-    // 计算属性 (Computed properties)
-    private var perimeter: Int {
-        get {
-            return 4 * sideLength
-        }
-        set {
-            // `newValue` 是个隐含的变量，它表示将要设置进来的新值
-            sideLength = newValue / 4
-        }
+// 当你在编写一个和父类中指定构造器相匹配的子类构造器时，实际上是在重写父类的这个指定构造器。因此，你必须在定义子类构造器时带上 override 修饰符。即使你重写的是系统自动提供的默认构造器，也需要带上 override 修饰符
+// 如果你编写了一个和父类便利构造器相匹配的子类构造器，由于子类不能直接调用父类的便利构造器。也就是说，便利构造器不存在重写行为，因此不需要加 override。
+// 子类可以在初始化时修改继承来的变量属性，但是不能修改继承来的常量属性。
+class RecipeIngredient: Food {
+    var quantity: Int
+    init(name: String, quantity: Int) {
+        self.quantity = quantity
+        super.init(name: name)
     }
+    override convenience init(name: String) {  // 子类可以将父类的指定构造器重写为便利构造器。
+        self.init(name: name, quantity: 1)
+    }
+}
+// 尽管RecipeIngredient将父类的指定构造器重写为了便利构造器，它依然提供了父类的所有指定构造器的实现。因此，RecipeIngredient会自动继承父类的所有便利构造器。即继承了父类 Food 的便利构造器 init()。这个继承版本的init()在功能上跟Food提供的版本是一样的，只是它会代理到RecipeIngredient版本的init(name: String)而不是Food提供的版本。
+class ShoppingListItem: RecipeIngredient {
+    var purchased = false
+    var description: String {
+        var output = "\(quantity) x \(name)"
+        output += purchased ? " ✔" : " ✘"
+        return output
+    }
+}
+// 由于 ShoppingListItem 为自己引入的所有属性都提供了默认值，并且没有定义任何构造器，它将自动继承所有父类中的指定构造器和便利构造器。
 
-    
+// 如果一个类、结构体或枚举类型的对象，在构造过程中有可能失败，则为其定义一个或多个可失败构造器，其语法为在init关键字后面加添问号(init?)。
+// 可失败构造器的参数名和参数类型，不能与其它非可失败构造器的参数名，及其参数类型相同。
+// 可通过return nil语句来表明可失败构造器在何种情况下应该“失败”，但不要用关键字return来表明构造成功。因为构造器不支持返回值。
+struct Animal {
+    let species: String
+    init?(species: String) {
+        if species.isEmpty { return nil }  // 失败情况
+        self.species = species
+    }
+}
+let someCreature = Animal(species: "Giraffe")  // someCreature 的类型是 Animal? 而不是 Animal
 
-    // 命名构造函数 (designated inits)，它必须初始化所有的成员变量，
-    // 然后调用父类的命名构造函数继续初始化父类的所有变量。
-    init(sideLength: Int) {
-        self.sideLength = sideLength
-        // 必须显式地在构造函数最后调用父类的构造函数 super.init
+// 带原始值的枚举类型会自带一个可失败构造器init?(rawValue:)，该可失败构造器有一个名为rawValue的参数，其类型和枚举类型的原始值类型一致。
+// 如果该参数的值能够和某个枚举成员的原始值匹配，则该构造器会构造相应的枚举成员，否则构造失败。
+enum TemperatureUnit: Character {
+    case Kelvin = "K", Celsius = "C", Fahrenheit = "F"
+}
+let fahrenheitUnit = TemperatureUnit(rawValue: "F")
+if fahrenheitUnit != nil {
+    print("This is a defined temperature unit, so initialization succeeded.")
+}
+// 打印 "This is a defined temperature unit, so initialization succeeded."
+let unknownUnit = TemperatureUnit(rawValue: "X")
+if unknownUnit == nil {
+    print("This is not a defined temperature unit, so initialization failed.")
+}
+// 打印 "This is not a defined temperature unit, so initialization failed."
+
+// 值类型（结构体或枚举）的可失败构造器，可以在构造过程中的任意时间点触发构造失败。
+// 而类的可失败构造器只能在类引入的所有存储型属性被初始化后，以及构造器代理调用完成后，才能触发构造失败。
+class Product {
+    let name: String!  // 隐式拆包可选字符串类型，它有默认值 nilS
+    init?(name: String) {
+        self.name = name
+        if name.isEmpty { return nil }
+    }
+}
+
+// 如果你代理到的其他可失败构造器触发构造失败，整个构造过程将立即终止，接下来的任何构造代码不会再被执行。
+class CartItem: Product {
+    let quantity: Int!
+    init?(name: String, quantity: Int) {
+        self.quantity = quantity
+        super.init(name: name)
+        if quantity < 1 { return nil }
+    }
+}
+
+// 子类中重写父类的可失败构造器，也可以用子类的非可失败构造器重写一个父类的可失败构造器，反之则不行。
+class Document {
+    var name: String?
+    // 该构造器创建了一个 name 属性的值为 nil 的 document 实例
+    init() {}
+    // 该构造器创建了一个 name 属性的值为非空字符串的 document 实例
+    init?(name: String) {
+        self.name = name
+        if name.isEmpty { return nil }
+    }
+}
+class AutomaticallyNamedDocument: Document {
+    override init() {
         super.init()
+        self.name = "[Untitled]"
     }
-
-    func shrink() {
-        if sideLength > 0 {
-            --sideLength
-        }
-    }
-
-    // 函数重载使用 override 关键字
-    override func getArea() -> Int {
-        return sideLength * sideLength
-    }
-}
-
-// 类 `Square` 从 `Rect` 继承
-class Square: Rect {
-    // 便捷构造函数 (convenience inits) 是调用自己的命名构造函数 (designated inits) 的构造函数
-    // Square 自动继承了父类的命名构造函数
-    convenience init() {
-        self.init(sideLength: 5)
-    }
-    // 关于构造函数的继承，有以下几个规则：
-    // 1. 如果你没有实现任何命名构造函数，那么你就继承了父类的所有命名构造函数
-    // 2. 如果你重载了父类的所有命名构造函数，那么你就自动继承了所有的父类快捷构造函数
-    // 3. 如果你没有实现任何构造函数，那么你继承了父类的所有构造函数，包括命名构造函数和便捷构造函数
-}
-
-var mySquare = Square()
-print(mySquare.getArea()) // 25
-mySquare.shrink()
-print(mySquare.sideLength) // 4
-
-// 类型转换
-let aShape = mySquare as Shape
-
-// 使用三个等号来比较是不是同一个实例
-if mySquare === aShape {
-    print("Yep, it's mySquare")
-}
-
-class Circle: Shape {
-    var radius: Int
-    override func getArea() -> Int {
-        return 3 * radius * radius
-    }
-
-    // optional 构造函数，可能会返回 nil
-    init?(radius: Int) {
-        self.radius = radius
+    override init(name: String) {  // 子类用另一种方式处理了空字符串的情况，所以不再需要一个可失败构造器
         super.init()
-
-        if radius <= 0 {
-            return nil
+        if name.isEmpty {
+            self.name = "[Untitled]"
+        } else {
+            self.name = name
         }
     }
 }
+// 你可以在子类的非可失败构造器中使用强制解包来调用父类的可失败构造器。
+class UntitledDocument: Document {
+    override init() {
+        super.init(name: "[Untitled]")!  // 如果在调用父类的可失败构造器init?(name:)时传入的是空字符串，那么强制拆包操作会引发运行时错误。
+    }
+}
 
-// 根据 Swift 类型推断，myCircle 是 Optional<Circle> 类型的变量
-var myCircle = Circle(radius: 1)
-print(myCircle?.getArea())    // Optional(3)
-print(myCircle!.getArea())    // 3
-var myEmptyCircle = Circle(radius: -1)
-print(myEmptyCircle?.getArea())    // "nil"
-if let circle = myEmptyCircle {
-    // 此语句不会输出，因为 myEmptyCircle 变量值为 nil
-    print("circle is not nil")
+// 除了使用 init? 来构造可失败构造器外，还可以使用 init! 来构造可失败构造器。该可失败构造器将会构建一个对应类型的隐式拆包可选类型的对象。
+// 可以在init?中代理到init!，反之亦然。还可以用init代理到init!，不过，一旦init!构造失败，则会触发一个断言。
+
+// 在类的构造器前添加required修饰符表明所有该类的子类都必须实现该构造器，即必需构造器：
+class SomeClass {
+    required init() {
+        // 构造器的实现代码
+    }
+}
+// 在子类重写父类的必要构造器时，必须在子类的构造器前也添加required修饰符，表明该构造器要求也应用于继承链后面的子类。在重写父类中必要的指定构造器时，不需要添加override修饰符：
+class SomeSubclass: SomeClass {
+    required init() {
+        // 构造器的实现代码
+    }
+}
+
+// 通过闭包或函数设置属性的默认值
+class SomeClass {
+    let someProperty: SomeType = {
+        // 在这个闭包中给 someProperty 创建一个默认值
+        // someValue 必须和 SomeType 类型相同
+        return someValue
+    }()  // 注意闭包结尾的大括号后面接了一对空的小括号。这用来告诉 Swift 立即执行此闭包。
+}
+// 使用闭包来初始化属性，请记住在闭包执行时，实例的其它部分都还没有初始化。这意味着你不能在闭包里访问其它属性，即使这些属性有默认值。同样，你也不能使用隐式的self属性，或者调用任何实例方法。
+
+// 析构器只适用于类，当一个类的实例被释放之前，析构器会被立即自动调用（不能主动调用析构器）。析构器用关键字deinit来标示。每个类最多只能有一个析构器，而且析构器不带任何参数。
+// Swift 会自动释放不再需要的实例以释放资源，除非是需要手动清理的资源才需要使用析构器。
+// 子类继承了父类的析构器，并且在子类析构器实现的最后，父类的析构器会被自动调用。即使子类没有提供自己的析构器，父类的析构器也同样会被调用。
+// 因为直到实例的析构器被调用后，实例才会被释放，所以析构器中还是可以访问实例的所有属性的。
+class Bank {
+    static var coinsInBank = 10_000
+    static func vendCoins(var numberOfCoinsToVend: Int) -> Int {
+        numberOfCoinsToVend = min(numberOfCoinsToVend, coinsInBank)
+        coinsInBank -= numberOfCoinsToVend
+        return numberOfCoinsToVend
+    }
+    static func receiveCoins(coins: Int) {
+        coinsInBank += coins
+    }
+}
+class Player {
+    var coinsInPurse: Int
+    init(coins: Int) {
+        coinsInPurse = Bank.vendCoins(coins)
+    }
+    func winCoins(coins: Int) {
+        coinsInPurse += Bank.vendCoins(coins)
+    }
+    deinit {
+        Bank.receiveCoins(coinsInPurse)
+    }
+}
+var playerOne: Player? = Player(coins: 100)
+print("A new player has joined the game with \(playerOne!.coinsInPurse) coins")  // 打印 "A new player has joined the game with 100 coins"
+print("There are now \(Bank.coinsInBank) coins left in the bank")  // 打印 "There are now 9900 coins left in the bank"
+playerOne!.winCoins(2_000)
+print("PlayerOne won 2000 coins & now has \(playerOne!.coinsInPurse) coins")  // 输出 "PlayerOne won 2000 coins & now has 2100 coins"
+print("The bank now only has \(Bank.coinsInBank) coins left")  // 输出 "The bank now only has 7900 coins left"
+playerOne = nil
+print("PlayerOne has left the game")  // 打印 "PlayerOne has left the game"
+print("The bank now has \(Bank.coinsInBank) coins")  // 打印 "The bank now has 10000 coins"
+
+// Swift 使用自动引用计数（ARC）机制来跟踪和管理你的应用程序的内存。与垃圾回收机制不同，ARC 在检测到对象没有强引用时就会立即回收，而垃圾回收机制只会在内存不足时才会触发回收。
+// 引用计数仅仅应用于类的实例。结构体和枚举类型是值类型，不是引用类型，也不是通过引用的方式存储和传递。
+// 将实例赋值给属性、常量或变量，它们都会创建此实例的强引用。只要强引用还在，实例是不允许被销毁的。
+// Swift 提供了两种办法用来解决在使用类的属性时所遇到的循环强引用问题：弱引用（weak reference）和无主引用（unowned reference）。
+// 对于生命周期中会变为nil的实例使用弱引用。相反地，对于初始化赋值后再也不会被赋值为nil的实例，使用无主引用。
+
+// 在变量声明之前加上 weak 关键字，该变量就变成弱引用。弱引用必须被声明为变量，而且必须声明可选类型，因为弱引用可能没有值。弱引用会被 ARC 销毁。
+// ARC 会在弱引用的实例被销毁后自动将其赋值为 nil。
+class Person {
+    let name: String
+    init(name: String) { self.name = name }
+    var apartment: Apartment?
+    deinit { print("\(name) is being deinitialized") }
+}
+class Apartment {
+    let unit: String
+    init(unit: String) { self.unit = unit }
+    weak var tenant: Person?
+    deinit { print("Apartment \(unit) is being deinitialized") }
+}
+
+// 在声明变量时，在前面加上关键字unowned表示这是一个无主引用。无主引用是永远有值的。因此，总是被定义为非可选类型。
+class Customer {
+    let name: String
+    var card: CreditCard?
+    init(name: String) {
+        self.name = name
+    }
+    deinit { print("\(name) is being deinitialized") }
+}
+class CreditCard {
+    let number: UInt64
+    unowned let customer: Customer
+    init(number: UInt64, customer: Customer) {
+        self.number = number
+        self.customer = customer
+    }
+    deinit { print("Card #\(number) is being deinitialized") }
+}
+
+// 两个属性都必须有值，并且初始化完成后永远不会为nil的场景：
+class Country {
+    let name: String
+    var capitalCity: City!  // 隐式拆包可选属性
+    init(name: String, capitalName: String) {
+        self.name = name
+        self.capitalCity = City(name: capitalName, country: self)
+    }
+}
+class City {
+    let name: String
+    unowned let country: Country  // 无主引用
+    init(name: String, country: Country) {
+        self.name = name
+        self.country = country
+    }
 }
 
 
