@@ -268,14 +268,6 @@ for scalar in dogString.unicodeScalars {
 // ‼
 // 🐶
 
-// 类型转换
-// 在Swift中，值永远不会被隐式转换为其他类型。如果你需要把一个值转换成其他类型，请调用构造器显式转换。
-let label = "some text " + String(myVariable)
-let three = 3
-let pointOneFourOneFiveNine = 0.14159
-let pi = Double(three) + pointOneFourOneFiveNine  // pi 等于 3.14159，所以被推测为 Double 类型
-let integerPi = Int(pi)  // pi被截断小数部分，integerPi 等于 3，所以被推测为 Int 类型
-
 
 // 类型别名
 typealias AudioSample = UInt16
@@ -316,7 +308,7 @@ someOptionalString = nil  // 可以给可选变量赋值为nil来表示它没有
 
 // 使用可选绑定（optional binding）来判断可选类型是否包含值，如果包含就把值赋给一个局部常量或者变量。
 // 可选绑定可以用在if和while语句中。
-if let someStringConstant = someOptionalString {
+if let someStringConstant = someOptionalString {  // someStringConstant 是 String 类型，而不是 String?
     // 通过可选绑定的常量或变量就不需要使用强制拆包来提取值了
     if !someStringConstant.hasPrefix("ok") {
         // does not have the prefix
@@ -358,16 +350,95 @@ class Person {
     var residence: Residence?
 }
 class Residence {
-    var numberOfRooms = 1
+    var rooms = [Room]()
+    var numberOfRooms: Int {
+        return rooms.count
+    }
+    subscript(i: Int) -> Room {
+        get {
+            return rooms[i]
+        }
+        set {
+            rooms[i] = newValue
+        }
+    }
+    func printNumberOfRooms() {
+        print("The number of rooms is \(numberOfRooms)")
+    }
+    var address: Address?
+}
+class Room {
+    let name: String
+    init(name: String) { self.name = name }
+}
+class Address {
+    var buildingName: String?
+    var buildingNumber: String?
+    var street: String?
+    func buildingIdentifier() -> String? {
+        if buildingName != nil {
+            return buildingName
+        } else if buildingNumber != nil && street != nil {
+            return "\(buildingNumber) \(street)"
+        } else {
+            return nil
+        }
+    }
 }
 let john = Person()
 let roomCount = john.residence!.numberOfRooms  // 强制会引发运行时错误，因为 residence 是 nil。
-if let roomCount = john.residence?.numberOfRooms { // 可选链（使用问号来替代原来的叹号）
-    print("John's residence has \(roomCount) room(s).")
+if let roomCount2 = john.residence?.numberOfRooms { // 可选链（使用问号来替代原来的叹号）。只要使用可选链就意味着 numberOfRooms 会返回一个 Int? 而不是 Int，即使 numberOfRooms 原来是 Int。
+    print("John's residence has \(roomCount2) room(s).")
 } else {
     print("Unable to retrieve the number of rooms.")
 }
 // 打印 “Unable to retrieve the number of rooms.”
+let someAddress = Address()
+someAddress.buildingNumber = "29"
+someAddress.street = "Acacia Road"
+john.residence?.address = someAddress  // 可以通过可选链来设置属性值。这里，通过john.residence来设定address属性也会失败，因为john.residence当前为nil。
+
+// 可以通过可选链式调用来调用方法，并判断是否调用成功，即使这个方法没有返回值。
+if john.residence?.printNumberOfRooms() != nil {  // 该方法的返回类型会是 Void?，而不是 Void，因为通过可选链得到的返回值都是可选的。这样我们就可以使用if语句来判断能否成功调用 printNumberOfRooms() 方法，即使方法本身没有定义返回值（即返回 ()）。
+    print("It was possible to print the number of rooms.")
+} else {
+    print("It was not possible to print the number of rooms.")
+}
+// 打印 “It was not possible to print the number of rooms.”
+
+// 通过可选链式调用，我们可以在一个可选值上访问下标，并且判断下标调用是否成功：
+if let firstRoomName = john.residence?[0].name {  // 赋值会失败，因为 residence 目前是 nil
+    print("The first room name is \(firstRoomName).")
+} else {
+    print("Unable to retrieve the first room name.")
+}
+// 打印 “Unable to retrieve the first room name.”
+
+// 访问可选类型的下标
+var testScores = ["Dave": [86, 82, 84], "Bev": [79, 94, 81]]
+testScores["Dave"]?[0] = 91
+testScores["Bev"]?[0]++
+testScores["Brian"]?[0] = 72
+// "Dave" 数组现在是 [91, 82, 84]，"Bev" 数组现在是 [80, 94, 81]
+
+// 连接多层可选链
+//   如果访问的值不是可选的，可选链式调用将会返回可选值；
+//   如果你访问的值就是可选的，可选链式调用不会让可选返回值变得“更可选”。
+if let johnsStreet = john.residence?.address?.street {  // john.residence?.address?.street 类型是 String?
+    print("John's street name is \(johnsStreet).")
+} else {
+    print("Unable to retrieve the address.")
+}
+// 打印 “Unable to retrieve the address.”
+if let beginsWithThe =
+    john.residence?.address?.buildingIdentifier()?.hasPrefix("The") {
+        if beginsWithThe {
+            print("John's building identifier begins with \"The\".")
+        } else {
+            print("John's building identifier does not begin with \"The\".")
+        }
+}
+// 打印 “John's building identifier begins with "The".”
 
 
 // Swift 支持可保存任何数据类型(Class, Int, struct, 等)的变量
@@ -1151,6 +1222,7 @@ for customerProvider in customerProviders {
 
 
 // 错误处理
+// Swift 中有4种处理错误的方式。你可以把函数抛出的错误通过声明 throws 来传递给调用此函数的代码、用do-catch语句处理错误、将错误作为可选类型处理、或者断言此错误根本不会发生。
 // 相对于可选类型只能表达存在与缺失，错误处理可以推断失败的原因，并传播至程序的其他部分。
 // 自定义错误类型。在 Swift 中，enum 是最好的自定义错误类型的方法：
 enum MyError: ErrorType {  
@@ -1163,19 +1235,32 @@ func canThrowAnError() throws -> String {
     // ...
     throw MyError.NotExist // 抛出错误
     // ...
-    defer {
-      // 不管是否抛出错误，总是会执行的代码。通常在这里释放获取的资源
-    } // 可以有多个defer 语句，他们的执行顺序会和栈一样，后进先出。
+    defer {  // 即使没有涉及到错误处理，也可以使用defer语句。
+      // defer语句将在当前的作用域退出之前执行。
+      // 不管是否抛出错误，总是会执行的代码。通常在这里做一些清理工作。
+      // defer 语句中的代码不能包含任何控制转移语句，例如break或是return语句，或是抛出一个错误。
+    } // 可以有多个defer 语句，他们的执行顺序与定义的顺序相反。
     // ...
 }
 
 // 捕获错误
+/* do-catch 语法：
+do {
+    try expression
+    statements
+} catch pattern 1 {
+    statements
+} catch pattern 2 where condition {
+    statements
+} */
 do {
     let theResult = try canThrowAnError() // 可能会抛出错误的表达式
     // 如果没有错误抛出，将继续执行的代码。否则，不会被执行
 } catch {
     // 捕获抛出的错误，并处理它
 }
+// 如果希望错误继续传递下去，则可以去掉do-catch语句，但 try 仍必须使用。
+// 如果调用 canThrowAnError() 的函数没有声明 throws，则该函数必须处理抛出的错误，而不能将错误继续传递下去。
 
 // catch 支持模式匹配
 do {
@@ -1186,10 +1271,23 @@ do {
     // deal with out of range
 }
 
-// 不处理错误
-// 某个方法或者函数虽然声明会抛出异常，但是我确信在这个上下文中是绝对不会抛出任何错误的。这种情况下 我们可以使用 try!
-// try! functionThrowErrorNil()
-// 如果使用 try!，但方法或者函数还是抛出了错误，那么你会得到一个运行时错误 (runtime error)，程序将停止执行。 
+// 可以使用 try? 通过将错误转换成一个可选值来处理错误。如果在求值 try? 表达式时一个错误被抛出，那么表达式的值就是 nil。
+func someThrowingFunction() throws -> Int {
+    // ...
+}
+
+let x = try? someThrowingFunction()
+
+let y: Int?
+do {
+    y = try someThrowingFunction()
+} catch {
+    y = nil
+}
+// 如果someThrowingFunction()抛出一个错误，x和y的值是nil。否则x和y的值就是该函数的返回值。注意，无论someThrowingFunction()的返回值类型是什么类型，x和y都是这个类型的可选类型。
+
+// 某个方法或者函数虽然声明会抛出异常，但是我确信在这个上下文中是绝对不会抛出错误的。这种情况下 我们可以使用 try! 来禁用错误传递。这会把调用包装在一个断言不会有错误抛出的运行时断言中。如果实际上抛出了错误，你会得到一个运行时错误。
+let photo = try! loadImage("./Resources/John Appleseed.jpg")
 
 
 // 断言
@@ -2011,6 +2109,54 @@ let four = ArithmeticExpression.Number(4)
 let sum = ArithmeticExpression.Addition(five, four)
 let product = ArithmeticExpression.Multiplication(sum, ArithmeticExpression.Number(2))
 print(evaluate(product))  // 输出 "18"
+
+
+// 类型转换
+// 在Swift中，值永远不会被隐式转换为其他类型。如果你需要把一个值转换成其他类型，请调用构造器显式转换。
+let label = "some text " + String(myVariable)
+let three = 3
+let pointOneFourOneFiveNine = 0.14159
+let pi = Double(three) + pointOneFourOneFiveNine  // pi 等于 3.14159，所以被推测为 Double 类型
+let integerPi = Int(pi)  // pi被截断小数部分，integerPi 等于 3，所以被推测为 Int 类型
+
+class MediaItem {
+    var name: String
+    init(name: String) {
+        self.name = name
+    }
+}
+class Movie: MediaItem {
+    var director: String
+    init(name: String, director: String) {
+        self.director = director
+        super.init(name: name)
+    }
+}
+class Song: MediaItem {
+    var artist: String
+    init(name: String, artist: String) {
+        self.artist = artist
+        super.init(name: name)
+    }
+}
+let library = [  // 数组 library 的类型被推断为 [MediaItem]
+    Movie(name: "Casablanca", director: "Michael Curtiz"),
+    Song(name: "Blue Suede Shoes", artist: "Elvis Presley"),
+    Movie(name: "Citizen Kane", director: "Orson Welles"),
+    Song(name: "The One And Only", artist: "Chesney Hawkes"),
+    Song(name: "Never Gonna Give You Up", artist: "Rick Astley")
+]
+var movieCount = 0
+var songCount = 0
+for item in library {
+    if item is Movie {  // 用类型检查操作符（is）来检查一个实例是否属于特定子类型。若实例属于那个子类型，类型检查操作符返回 true，否则返回 false。
+        ++movieCount
+    } else if item is Song {
+        ++songCount
+    }
+}
+print("Media library contains \(movieCount) movies and \(songCount) songs")  // 打印 “Media library contains 2 movies and 3 songs”
+
 
 //
 // MARK: 协议
