@@ -441,11 +441,6 @@ if let beginsWithThe =
 // 打印 “John's building identifier begins with "The".”
 
 
-// Swift 支持可保存任何数据类型(Class, Int, struct, 等)的变量
-var anyObjectVar: AnyObject = 7
-anyObjectVar = "Changed value to a string, not good practice, but possible."
-
-
 // 赋值运算符
 var a = 5
 a = 6
@@ -1470,7 +1465,7 @@ class SomeClass {
     static var computedTypeProperty: Int {
         return 27
     }
-    class var overrideableComputedTypeProperty: Int {  // 关键字 class 表示这是一个类型的属性、方法或下标，且支持子类对父类的实现进行重写。static 相当于 final class。
+    class var overrideableComputedTypeProperty: Int {  // 关键字 class 表示这是一个类型的属性、方法或下标，且允许子类对父类的实现进行重写。static 相当于 final class。class 只能用在类中。
         return 107
     }
 }
@@ -2111,14 +2106,57 @@ let product = ArithmeticExpression.Multiplication(sum, ArithmeticExpression.Numb
 print(evaluate(product))  // 输出 "18"
 
 
-// 类型转换
-// 在Swift中，值永远不会被隐式转换为其他类型。如果你需要把一个值转换成其他类型，请调用构造器显式转换。
-let label = "some text " + String(myVariable)
-let three = 3
-let pointOneFourOneFiveNine = 0.14159
-let pi = Double(three) + pointOneFourOneFiveNine  // pi 等于 3.14159，所以被推测为 Double 类型
-let integerPi = Int(pi)  // pi被截断小数部分，integerPi 等于 3，所以被推测为 Int 类型
+// Swift 为不确定类型提供了两种特殊的类型别名：
+//   AnyObject：表示任何类类型的实例。
+//   Any：表示任何类型，包括函数类型。
+var anyObjectVar: AnyObject = 7
+anyObjectVar = "Changed value to a string, not good practice, but possible."
 
+// 可以在 switch 表达式的 case 中使用 is 和 as 操作符来找出只知道是 Any 或 AnyObject 类型的常量或变量的具体类型。
+var things = [Any]()
+things.append(0)
+things.append(0.0)
+things.append(42)
+things.append(3.14159)
+things.append("hello")
+things.append((3.0, 5.0))
+things.append(Movie(name: "Ghostbusters", director: "Ivan Reitman"))
+things.append({ (name: String) -> String in "Hello, \(name)" })
+for thing in things {
+    switch thing {
+    case 0 as Int:
+        print("zero as an Int")
+    case 0 as Double:
+        print("zero as a Double")
+    case let someInt as Int:
+        print("an integer value of \(someInt)")
+    case let someDouble as Double where someDouble > 0:
+        print("a positive double value of \(someDouble)")
+    case is Double:
+        print("some other double value that I don't want to print")
+    case let someString as String:
+        print("a string value of \"\(someString)\"")
+    case let (x, y) as (Double, Double):
+        print("an (x, y) point at \(x), \(y)")
+    case let movie as Movie:
+        print("a movie called '\(movie.name)', dir. \(movie.director)")
+    case let stringConverter as String -> String:
+        print(stringConverter("Michael"))
+    default:
+        print("something else")
+    }
+}
+// zero as an Int
+// zero as a Double
+// an integer value of 42
+// a positive double value of 3.14159
+// a string value of "hello"
+// an (x, y) point at 3.0, 5.0
+// a movie called 'Ghostbusters', dir. Ivan Reitman
+// Hello, Michael
+
+
+// 检查类型
 class MediaItem {
     var name: String
     init(name: String) {
@@ -2158,17 +2196,165 @@ for item in library {
 print("Media library contains \(movieCount) movies and \(songCount) songs")  // 打印 “Media library contains 2 movies and 3 songs”
 
 
-//
-// MARK: 协议
-// 与 Java 的 interface 类似
-//
+// 类型转换
+// 在Swift中，值永远不会被隐式转换为其他类型。如果你需要把一个值转换成其他类型，请调用构造器显式转换。
+let label = "some text " + String(myVariable)
+let three = 3
+let pointOneFourOneFiveNine = 0.14159
+let pi = Double(three) + pointOneFourOneFiveNine  // pi 等于 3.14159，所以被推测为 Double 类型
+let integerPi = Int(pi)  // pi被截断小数部分，integerPi 等于 3，所以被推测为 Int 类型
 
-// 协议可以让遵循同一协议的类型实例拥有相同的属性，方法，类方法，操作符或下标运算符等
-// 下面代码定义一个协议，这个协议包含一个名为 enabled 的计算属性且包含 buildShape 方法
-protocol ShapeGenerator {
-    var enabled: Bool { get set }
-    func buildShape() -> Shape
+
+// 向下转型有两种方式：
+//   as?：总是返回一个可选值，并且若下转是不可能的，可选值将是 nil。这使你能够检查向下转型是否成功。
+//   as!：向下转型的同时进行强制拆包。只有你可以确定向下转型一定会成功时，才使用强制形式（as!）。当你试图向下转型为一个不正确的类型时，强制形式的类型转换会触发一个运行时错误。
+for item in library {
+    if let movie = item as? Movie {
+        print("Movie: '\(movie.name)', dir. \(movie.director)")
+    } else if let song = item as? Song {
+        print("Song: '\(song.name)', by \(song.artist)")
+    }
 }
+// Movie: 'Casablanca', dir. Michael Curtiz
+// Song: 'Blue Suede Shoes', by Elvis Presley
+// Movie: 'Citizen Kane', dir. Orson Welles
+// Song: 'The One And Only', by Chesney Hawkes
+// Song: 'Never Gonna Give You Up', by Rick Astley
+
+let someObjects: [AnyObject] = [
+    Movie(name: "2001: A Space Odyssey", director: "Stanley Kubrick"),
+    Movie(name: "Moon", director: "Duncan Jones"),
+    Movie(name: "Alien", director: "Ridley Scott")
+]
+for object in someObjects {
+    let movie = object as! Movie
+    print("Movie: '\(movie.name)', dir. \(movie.director)")
+}
+// Movie: '2001: A Space Odyssey', dir. Stanley Kubrick
+// Movie: 'Moon', dir. Duncan Jones
+// Movie: 'Alien', dir. Ridley Scott
+for movie in someObjects as! [Movie] {
+    print("Movie: '\(movie.name)', dir. \(movie.director)")
+}
+// Movie: '2001: A Space Odyssey', dir. Stanley Kubrick
+// Movie: 'Moon', dir. Duncan Jones
+// Movie: 'Alien', dir. Ridley Scott
+
+
+// 嵌套类型
+// 枚举、结构体和类都是可以互相嵌套的。
+struct BlackjackCard {
+    // 嵌套的 Suit 枚举
+    enum Suit: Character {
+       case Spades = "♠", Hearts = "♡", Diamonds = "♢", Clubs = "♣"
+    }
+    // 嵌套的 Rank 枚举
+    enum Rank: Int {
+       case Two = 2, Three, Four, Five, Six, Seven, Eight, Nine, Ten
+       case Jack, Queen, King, Ace
+       struct Values {
+           let first: Int, second: Int?
+       }
+       var values: Values {
+        switch self {
+        case .Ace:
+            return Values(first: 1, second: 11)
+        case .Jack, .Queen, .King:
+            return Values(first: 10, second: nil)
+        default:
+            return Values(first: self.rawValue, second: nil)
+            }
+       }
+    }
+    // BlackjackCard 的属性和方法
+    let rank: Rank, suit: Suit
+    var description: String {
+        var output = "suit is \(suit.rawValue),"
+        output += " value is \(rank.values.first)"
+        if let second = rank.values.second {
+            output += " or \(second)"
+        }
+        return output
+    }
+}
+// 在外部引用嵌套类型时，在嵌套类型的类型名前加上其外部类型的类型名作为前缀：
+let heartsSymbol = BlackjackCard.Suit.Hearts.rawValue  // 红心符号为 “♡”
+
+
+// 协议
+// 协议可以让遵循同一协议的类型实例拥有相同的实例属性、类属性、方法、类方法、操作符或下标运算符等
+protocol FullyNamed {
+    var fullName: String { get }  // 如果协议只要求属性是只读的，那么该属性不仅可以是只读的，如果代码需要的话，还可以是可写的。
+}
+struct Person: FullyNamed {
+    var fullName: String  // 协议中的属性既可以实现为计算属性，也可以实现为存储属性
+}
+let john = Person(fullName: "John Appleseed")  // john.fullName 为 "John Appleseed"
+
+// 协议方法
+protocol RandomNumberGenerator {
+    func random() -> Double
+}
+class LinearCongruentialGenerator: RandomNumberGenerator {
+    var lastRandom = 42.0
+    let m = 139968.0
+    let a = 3877.0
+    let c = 29573.0
+    func random() -> Double {
+        lastRandom = ((lastRandom * a + c) % m)
+        return lastRandom / m
+    }
+}
+let generator = LinearCongruentialGenerator()
+print("Here's a random number: \(generator.random())")  // 打印 “Here's a random number: 0.37464991998171”
+print("And another one: \(generator.random())")  // 打印 “And another one: 0.729023776863283”
+
+// 在协议中定义类型属性和类型方法的时候，总是使用 static 关键字作为前缀。当类类型采纳协议时，除了 static 关键字，还可以使用 class 关键字作为前缀：
+protocol SomeProtocol {
+    static var someTypeProperty: Int { get set }
+    static func someTypeMethod()
+}
+
+// 可以在协议中定义具有可变参数的方法，和普通方法的定义方式相同。但是，不支持为协议中的方法的参数提供默认值。
+
+// 如果你在协议中定义了一个实例方法，该方法会改变采纳该协议的类型的实例，那么在定义协议时需要在方法前加 mutating 关键字。
+// 实现协议中的 mutating 方法时，若是类类型，则不用写 mutating 关键字。而对于结构体和枚举，则必须写 mutating 关键字。
+protocol Togglable {
+    mutating func toggle()
+}
+enum OnOffSwitch: Togglable {
+    case Off, On
+    mutating func toggle() {
+        switch self {
+        case Off:
+            self = On
+        case On:
+            self = Off
+        }
+    }
+}
+var lightSwitch = OnOffSwitch.Off
+lightSwitch.toggle()  // lightSwitch 现在的值为 .On
+
+// 协议构造器
+protocol SomeProtocol {
+    init(someParameter: Int)
+}
+class SomeSuperClass : SomeProtocol {
+    required init(someParameter: Int) {  // 在采纳协议的类中实现构造器，无论是作为指定构造器，还是作为便利构造器。无论哪种情况，你都必须为构造器实现标上 required 修饰符：
+        // 这里是构造器的实现部分
+    }
+}
+// 如果类已经被标记为 final，那么不需要在协议构造器的实现中使用 required 修饰符，因为 final 类不能有子类。
+class SomeSubClass: SomeSuperClass {
+    // 如果一个子类重写了父类的指定构造器，并且该构造器满足了某个协议的要求，那么该构造器的实现需要同时标注 required 和 override 修饰符
+    required override init() {
+        // 这里是构造器的实现部分
+    }
+}
+
+// 协议是一种类型，可以像其他普通类型一样使用。
+
 
 // 协议声明时可以添加 @objc 前缀，添加 @objc 前缀后，
 // 可以使用 is, as, as? 等来检查协议兼容性
@@ -2198,34 +2384,99 @@ class MyShape: Rect {
 }
 
 
-//
-// MARK: 其它
-//
+// 扩展（Extensions）
+// 扩展就是为一个已有的类、结构体（包括内置类型）、枚举类型或者协议类型添加新功能，但是不能重写已有的功能。这包括在没有权限获取原始源代码的情况下扩展类型的能力（即 逆向建模 ）。
+// 如果通过扩展为一个已有类型添加新功能，那么新功能对该类型的所有已有实例都是可用的，即使它们是在这个扩展定义之前创建的。
 
-// 扩展: 给一个已经存在的数据类型添加功能
+// 可以通过扩展来扩展一个已有类型，使其采纳一个或多个协议：
+extension SomeType: SomeProtocol, AnotherProctocol {
+    // 协议实现写到这里
+}
 
-// 给 Square 类添加 `Printable` 协议的实现，现在其支持 `Printable` 协议
-extension Square: Printable {
-    var description: String {
-        return "Area: \(self.getArea()) - ID: \(self.identifier)"
+// 扩展可以为已有类型添加计算型实例属性和计算型类型属性。
+extension Double {
+    var km: Double { return self * 1_000.0 }
+    var m : Double { return self }
+    var cm: Double { return self / 100.0 }
+    var mm: Double { return self / 1_000.0 }
+    var ft: Double { return self / 3.28084 }
+}
+let oneInch = 25.4.mm
+print("One inch is \(oneInch) meters")  // 打印 “One inch is 0.0254 meters”
+let threeFeet = 3.ft
+print("Three feet is \(threeFeet) meters")  // 打印 “Three feet is 0.914399970739201 meters”
+// 扩展可以添加新的计算型属性，但是不可以添加存储型属性，也不可以为已有属性添加属性观察器。
+
+// 扩展能为类添加新的便利构造器，但是它们不能为类添加新的指定构造器或析构器。指定构造器和析构器必须总是由原始的类实现来提供。
+extension Rect {
+    init(center: Point, size: Size) {
+        let originX = center.x - (size.width / 2)
+        let originY = center.y - (size.height / 2)
+        self.init(origin: Point(x: originX, y: originY), size: size)
     }
 }
 
-print("Square: \(mySquare)")  // Area: 16 - ID: defaultID
-
-// 也可以给系统内置类型添加功能支持
+// 扩展可以为已有类型添加新的实例方法和类型方法
 extension Int {
-    var customProperty: String {
-        return "This is \(self)"
+    func repetitions(task: () -> Void) {
+        for _ in 0..<self {
+            task()
+        }
     }
-
-    func multiplyBy(num: Int) -> Int {
-        return num * self
+    mutating func square() {
+        self = self * self
     }
 }
 
-print(7.customProperty) // "This is 7"
-print(14.multiplyBy(3)) // 42
+// 扩展可以为已有类型添加新下标
+extension Int {
+    subscript(var digitIndex: Int) -> Int {  // 该下标 [n] 返回十进制数字从右向左数的第 n 个数字
+        var decimalBase = 1
+        while digitIndex > 0 {
+            decimalBase *= 10
+            --digitIndex
+        }
+        return (self / decimalBase) % 10
+    }
+}
+746381295[0]  // 返回 5
+746381295[1]  // 返回 9
+746381295[2]  // 返回 2
+746381295[8]  // 返回 7
+746381295[9]  // 返回 0，下标越界。等同于：
+0746381295[9]
+
+// 扩展可以为已有的类、结构体和枚举添加新的嵌套类型：
+extension Int {
+    enum Kind {
+        case Negative, Zero, Positive
+    }
+    var kind: Kind {
+        switch self {
+        case 0:
+            return .Zero
+        case let x where x > 0:
+            return .Positive
+        default:
+            return .Negative
+        }
+    }
+}
+func printIntegerKinds(numbers: [Int]) {
+    for number in numbers {
+        switch number.kind {
+        case .Negative:
+            print("- ", terminator: "")
+        case .Zero:
+            print("0 ", terminator: "")
+        case .Positive:
+            print("+ ", terminator: "")
+        }
+    }
+    print("")
+}
+printIntegerKinds([3, 19, -27, 0, -6, 0, 7])  // 打印 “+ + - 0 - 0 +”
+
 
 // 泛型: 和 Java 及 C# 的泛型类似，使用 `where` 关键字来限制类型。
 // 如果只有一个类型限制，可以省略 `where` 关键字
