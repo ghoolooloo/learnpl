@@ -20,7 +20,7 @@
  */
  
 
-// 导入外部模块
+// 导入其他模块
 import UIKit
 
 
@@ -448,7 +448,7 @@ a += 2
 // Swift 的赋值操作并不返回任何值。所以不能这样写：if x = y {...}
 
 
-// 算术运算符
+// 算术运算符（非溢出）
 1 + 2       // 等于 3
 5 - 3       // 等于 2
 2 * 3       // 等于 6
@@ -524,6 +524,44 @@ for i in 0..<count {
 // 数组（Arrays）是有序数据的集。集合（Sets）是无序无重复数据的集。字典（Dictionaries）是无序的键值对的集。
 // Array、Set 和 Dictionary 是结构体，不是类，他们作为函数参数时，是用值传递而不是指针传递。
 // 如果创建一个Arrays、Sets或Dictionaries并且把它分配成一个变量，这个集合将会是可变的。这意味着我们可以在创建之后添加更多或移除已存在的数据项，或者改变集合中的数据项。如果我们把Arrays、Sets或Dictionaries分配成常量，那么它就是不可变的，它的大小和内容都不能被改变。
+
+
+// 位运算符
+let initialBits: UInt8 = 0b00001111
+let invertedBits = ~initialBits // 按位取反。等于 0b11110000
+
+// 位与
+let firstSixBits: UInt8 = 0b11111100
+let lastSixBits: UInt8  = 0b00111111
+let middleFourBits = firstSixBits & lastSixBits // 等于 00111100
+
+// 位或
+let someBits: UInt8 = 0b10110010
+let moreBits: UInt8 = 0b01011110
+let combinedbits = someBits | moreBits // 等于 11111110
+
+// 位异或
+let firstBits: UInt8 = 0b00010100
+let otherBits: UInt8 = 0b00000101
+let outputBits = firstBits ^ otherBits // 等于 00010001
+
+// 移位
+let shiftBits: UInt8 = 4 // 即二进制的 00000100
+shiftBits << 1           // 00001000
+shiftBits << 2           // 00010000
+shiftBits << 5           // 10000000
+shiftBits << 6           // 00000000
+shiftBits >> 2           // 00000001
+let pink: UInt32 = 0xCC6699
+let redComponent = (pink & 0xFF0000) >> 16  // redComponent 是 0xCC，即 204
+let greenComponent = (pink & 0x00FF00) >> 8 // greenComponent 是 0x66， 即 102
+let blueComponent = pink & 0x0000FF         // blueComponent 是 0x99，即 153
+
+
+// 溢出运算
+//  溢出加法 &+
+//  溢出减法 &-
+//  溢出乘法 &*
 
 
 // 数组
@@ -2353,35 +2391,94 @@ class SomeSubClass: SomeSuperClass {
     }
 }
 
-// 协议是一种类型，可以像其他普通类型一样使用。
+// 协议是一种类型，可以像其他普通类型一样使用。可以使用 is, as, as? 等来检查协议兼容性。
 
-
-// 协议声明时可以添加 @objc 前缀，添加 @objc 前缀后，
-// 可以使用 is, as, as? 等来检查协议兼容性
-// 需要注意，添加 @objc 前缀后，协议就只能被类来实现，
-// 结构体和枚举不能实现加了 @objc 的前缀
-// 只有添加了 @objc 前缀的协议才能声明 optional 方法
-// 一个类实现一个带 optional 方法的协议时，可以实现或不实现这个方法
-// optional 方法可以使用 optional 规则来调用
-@objc protocol TransformShape {
-    optional func reshaped()
-    optional func canReshape() -> Bool
+// 协议能够继承一个或多个其他协议，可以在继承的协议的基础上增加新的要求。
+protocol InheritingProtocol: SomeProtocol, AnotherProtocol {
+    // 这里是协议的定义部分
 }
 
-class MyShape: Rect {
-    var delegate: TransformShape?
+// 可以在协议的继承列表中，通过添加 class 关键字来限制协议只能被类类型采纳（即限定为引用语义），而结构体或枚举不能采纳该协议。class 关键字必须第一个出现在协议的继承列表中，在其他继承的协议之前：
+protocol SomeClassOnlyProtocol: class, SomeInheritedProtocol {
+    // 这里是类类型专属协议的定义部分
+}
 
-    func grow() {
-        sideLength += 2
+// 有时候需要同时采纳多个协议，你可以将多个协议采用 protocol<SomeProtocol, AnotherProtocol> 这样的格式进行组合，称为协议合成（protocol composition）。你可以在 <> 中罗列任意多个你想要采纳的协议，以逗号分隔：
+protocol Named {
+    var name: String { get }
+}
+protocol Aged {
+    var age: Int { get }
+}
+struct Person: Named, Aged {
+    var name: String
+    var age: Int
+}
+func wishHappyBirthday(celebrator: protocol<Named, Aged>) {
+    print("Happy birthday \(celebrator.name) - you're \(celebrator.age)!")
+}
+let birthdayPerson = Person(name: "Malcolm", age: 21)
+wishHappyBirthday(birthdayPerson)  // 打印 “Happy birthday Malcolm - you're 21!”
+// 协议合成并不会生成新的、永久的协议类型，而是将多个协议中的要求合成到一个只在局部作用域有效的临时协议中。
 
-        // 在 optional 属性，方法或下标运算符后面加一个问号，可以优雅地忽略 nil 值，返回 nil。
-        // 这样就不会引起运行时错误 (runtime error)
-        if let allow = self.delegate?.canReshape?() {
-            // 注意语句中的问号
-            self.delegate?.reshaped?()
+
+// 协议声明时可以添加 @objc 特性，该特性表示协议将暴露给 Objective-C 代码。
+// 标记 @objc 特性的协议只能被继承自 Objective-C 类的类或者 @objc 类采纳，其他类以及结构体和枚举均不能采纳这种协议。
+// 只有添加了 @objc 特性的协议才能可选的协议要求（例如，可选的方法或者属性）。即使你不打算和 Objective-C 有什么交互，如果你想要指定可选的协议要求，那么还是要为协议加上 @obj 特性。
+// 一个类实现一个带可选的协议要求的协议时，可以选择是否实现这些要求。
+// 使用可选要求时，它们的类型会自动变成可选的。比如，一个类型为 (Int) -> String 的方法会变成 ((Int) -> String)?。
+// 协议中的可选要求可通过可选链式调用来使用。
+@objc protocol CounterDataSource {
+    optional func incrementForCount(count: Int) -> Int
+    optional var fixedIncrement: Int { get }
+}
+class Counter {
+    var count = 0
+    var dataSource: CounterDataSource?
+    func increment() {
+        if let amount = dataSource?.incrementForCount?(count) {
+            count += amount
+        } else if let amount = dataSource?.fixedIncrement {
+            count += amount
         }
     }
 }
+class ThreeSource: NSObject, CounterDataSource {
+    let fixedIncrement = 3
+}
+var counter = Counter()
+counter.dataSource = ThreeSource()
+for _ in 1...4 {
+    counter.increment()
+    print(counter.count)
+}
+// 3
+// 6
+// 9
+// 12
+
+// 协议扩展
+// 协议可以通过扩展来为采纳协议的类型添加新的属性、方法以及下标。
+extension RandomNumberGenerator {
+    func randomBool() -> Bool {
+        return random() > 0.5
+    }
+}
+// 通过协议扩展，所有采纳协议的类型，都能自动获得这个扩展所增加的方法实现，无需任何额外修改：
+let generator = LinearCongruentialGenerator()
+print("Here's a random number: \(generator.random())")  // 打印 “Here's a random number: 0.37464991998171”
+print("And here's a random Boolean: \(generator.randomBool())")  // 打印 “And here's a random Boolean: true”
+
+// 可以通过协议扩展来为协议要求的属性、方法以及下标提供默认的实现。如果采纳协议的类型为这些要求提供了自己的实现，那么这些自定义实现将会替代扩展中的默认实现被使用。
+// 通过协议扩展为协议要求提供的默认实现和可选的协议要求不同。虽然在这两种情况下，采纳协议的类型都无需自己实现这些要求，但是通过扩展提供的默认实现可以直接调用，而无需使用可选链式调用。
+// 在扩展协议的时候，可以指定一些限制条件，只有采纳协议的类型满足这些限制条件时，才能获得协议扩展提供的默认实现。
+extension CollectionType where Generator.Element: TextRepresentable {
+    var textualDescription: String {
+        let itemsAsText = self.map { $0.textualDescription }
+        return "[" + itemsAsText.joinWithSeparator(", ") + "]"
+    }
+}
+// 如果多个协议扩展都为同一个协议要求提供了默认实现，而采纳协议的类型又同时满足这些协议扩展的限制条件，那么将会使用限制条件最多的那个协议扩展提供的默认实现。
 
 
 // 扩展（Extensions）
@@ -2478,37 +2575,188 @@ func printIntegerKinds(numbers: [Int]) {
 printIntegerKinds([3, 19, -27, 0, -6, 0, 7])  // 打印 “+ + - 0 - 0 +”
 
 
-// 泛型: 和 Java 及 C# 的泛型类似，使用 `where` 关键字来限制类型。
-// 如果只有一个类型限制，可以省略 `where` 关键字
-func findIndex<T: Equatable>(array: [T], valueToFind: T) -> Int? {
-    for (index, value) in enumerate(array) {
-        if value == valueToFind {
-            return index
+// 泛型函数
+func swapTwoValues<T>(inout a: T, inout _ b: T) {
+    let temporaryA = a
+    a = b
+    b = temporaryA
+}
+var someInt = 3
+var anotherInt = 107
+swapTwoValues(&someInt, &anotherInt)  // someInt is now 107, and anotherInt is now 3
+var someString = "hello"
+var anotherString = "world"
+swapTwoValues(&someString, &anotherString)  // someString is now "world", and anotherString is now "hello"
+
+// 泛型类型
+struct Stack<Element> {
+    var items = [Element]()
+    mutating func push(item: Element) {
+        items.append(item)
+    }
+    mutating func pop() -> Element {
+        return items.removeLast()
+    }
+}
+var stackOfStrings = Stack<String>()
+stackOfStrings.push("uno")
+stackOfStrings.push("dos")
+stackOfStrings.push("tres")
+stackOfStrings.push("cuatro")
+// 栈中现在有 4 个字符串
+
+// 当你扩展一个泛型类型的时候，你并不需要在扩展的定义中提供类型参数列表，原始类型定义中声明的类型参数列表在扩展中可以直接使用：
+extension Stack {
+    var topItem: Element? {
+        return items.isEmpty ? nil : items[items.count - 1]
+    }
+}
+
+// 类型约束可以指定一个类型参数必须继承自指定类，或者符合一个特定的协议或协议组合。
+func someFunction<T: SomeClass, U: SomeProtocol>(someT: T, someU: U) {
+    // 这里是泛型函数的函数体部分
+}
+
+// 关联类型作为协议的一部分，为某个类型提供了一个占位名（或者说别名），其代表的实际类型在协议被采纳时才会被指定。
+protocol Container {
+    typealias ItemType  // 定义了关联类型 ItemType
+    mutating func append(item: ItemType)
+    var count: Int { get }
+    subscript(i: Int) -> ItemType { get }
+}
+struct Stack<Element>: Container {
+    typealias ItemType = Element  // 这句代码可以省略，因为Swift可以通过类型推断出ItemType就是Element的别名。
+    mutating func append(item: Element) {
+        self.push(item)
+    }
+    var count: Int {
+        return items.count
+    }
+    subscript(i: Int) -> Element {
+        return items[i]
+    }
+}
+
+// 可以通过将 where 关键字紧跟在类型参数列表后面来定义 where 子句，where 子句后跟一个或者多个针对关联类型的约束，以及一个或多个类型参数和关联类型间的相等关系。
+func allItemsMatch<
+    C1: Container, C2: Container
+    where C1.ItemType == C2.ItemType, C1.ItemType: Equatable>
+    (someContainer: C1, _ anotherContainer: C2) -> Bool {
+        // 检查两个容器含有相同数量的元素
+        if someContainer.count != anotherContainer.count {
+            return false
+        }
+        // 检查每一对元素是否相等
+        for i in 0..<someContainer.count {
+            if someContainer[i] != anotherContainer[i] {
+                return false
+            }
+        }
+        // 所有元素都匹配，返回 true
+        return true
+}
+
+
+// 访问控制
+// Swift 中的访问控制模型基于模块和源文件这两个概念。
+
+// 访问级别：
+//   public：可以访问同一模块源文件中的任何实体，在模块外也可以通过导入该模块来访问源文件里的所有实体。
+//   internal：默认级别，可以访问同一模块源文件中的任何实体，但是不能从模块外访问该模块源文件中的实体。
+//   private：限制实体只能在所在的源文件内部使用。
+// Swift 中的 private 访问级别不同于其他语言，它的范围限于源文件，而不是声明范围内。这就意味着，一个类型可以访问其所在源文件中的所有 private 实体，但是如果它的扩展定义在其他源文件中，那么它的扩展就不能访问它在这个源文件中定义的 private 实体。
+// Swift 中的访问级别遵循一个基本原则：不可以在某个实体中定义访问级别更高的实体。
+// 测试模块通常需要访问目标模块的所有访问级别的实体。这时，只要在导入目标模块的语句前使用 @testable 特性，然后在启用测试的编译设置（Build Options -> Enable Testability）下编译这个目标模块就可以了。
+// 一个类型的访问级别也会影响到类型成员（属性、方法、构造器、下标）的默认访问级别。如果你将类型指定为 private 级别，那么该类型的所有成员的默认访问级别也会变成 private。如果你将类型指定为 public 或者 internal 级别（或者不明确指定访问级别，而使用默认的 internal 访问级别），那么该类型的所有成员的默认访问级别将是 internal。
+public class SomePublicClass {          // 显式的 public 类
+    public var somePublicProperty = 0   // 显式的 public 类成员
+    var someInternalProperty = 0        // 隐式的 internal 类成员
+    private func somePrivateMethod() {} // 显式的 private 类成员
+}
+class SomeInternalClass {               // 隐式的 internal 类
+    var someInternalProperty = 0        // 隐式的 internal 类成员
+    private func somePrivateMethod() {} // 显式的 private 类成员
+}
+private class SomePrivateClass {        // 显式的 private 类
+    var somePrivateProperty = 0         // 隐式的 private 类成员
+    func somePrivateMethod() {}         // 隐式的 private 类成员
+}
+
+// 元组的访问级别将由元组中访问级别最严格的类型来决定。例如，如果你构建了一个包含两种不同类型的元组，其中一个类型为 internal 级别，另一个类型为 private 级别，那么这个元组的访问级别为 private。
+
+// 函数的访问级别根据访问级别最严格的参数类型或返回类型的访问级别来决定。但是，如果这种访问级别不符合函数定义所在环境的默认访问级别，那么就需要明确地指定该函数的访问级别。
+private func someFunction() -> (SomeInternalClass, SomePrivateClass) {
+    // 此处是函数实现部分
+}
+
+// 枚举成员的访问级别和该枚举类型相同，你不能为枚举成员单独指定不同的访问级别。
+// 枚举定义中的任何原始值或关联值的类型的访问级别至少不能严格于枚举类型的访问级别。例如，你不能在一个 internal 访问级别的枚举中定义 private 级别的原始值类型。
+
+// 子类的访问级别不得高于父类的访问级别。例如，父类的访问级别是 internal，子类的访问级别就不能是 public。
+// 可以通过重写为继承来的类成员提供更高的访问级别。
+public class A {
+    private func someMethod() {}
+}
+internal class B: A {
+    override internal func someMethod() {
+      super.someMethod()  // 因为父类 A 和子类 B 定义在同一个源文件中，所以在子类 B 可以在重写的 someMethod() 方法中调用 super.someMethod()。
+    }
+}
+
+// 常量、变量、属性、下标的 Getters 和 Setters 的访问级别和它们所属类型的访问级别相同。
+// Setter 的访问级别可以低于对应的 Getter 的访问级别，这样就可以控制变量、属性或下标的读写权限。在 var 或 subscript 关键字之前，你可以通过 private(set) 或 internal(set) 为它们的写入权限指定更低的访问级别。
+struct TrackedString {
+    private(set) var numberOfEdits = 0
+    var value: String = "" {
+        didSet {
+            numberOfEdits++
         }
     }
-    return nil
 }
-let foundAtIndex = findIndex([1, 2, 3, 4], 3)
-print(foundAtIndex == 2) // true
 
-// 自定义运算符:
-// 自定义运算符可以以下面的字符打头:
-//      / = - + * % < > ! & | ^ . ~
-// 甚至是 Unicode 的数学运算符等
+// 自定义构造器的访问级别可以低于或等于其所属类型的访问级别。唯一的例外是必要构造器，它的访问级别必须和所属类型的访问级别相同。
+// 如同函数或方法的参数，构造器参数的访问级别也不能低于构造器本身的访问级别。
+// 默认构造器和逐一构造器的访问级别与所属类型的访问级别相同，除非类型的访问级别是 public。如果一个类型被指定为 public 级别，那么默认构造器或逐一构造器的访问级别将为 internal。如果你希望一个 public 级别的类型也能在其他模块中使用这种无参数的默认构造器或逐一构造器，你只能自己提供一个 public 访问级别的无参数构造器或逐一构造器。
+
+// 协议中的每一个成员都具有和该协议相同的访问级别。你不能将协议中的成员设置为其他访问级别。
+// 如果定义了一个继承自其他协议的新协议，那么新协议拥有的访问级别最高也只能和被继承协议的访问级别相同。例如，你不能将继承自 internal 协议的新协议定义为 public 协议。
+// 一个类型可以采纳比自身访问级别低的协议。例如，你可以定义一个 public 级别的类型，它可以在其他模块中使用，同时它也可以采纳一个 internal 级别的协议，但是只能在该协议所在的模块中作为符合该协议的类型使用。
+// 采纳了协议的类型的访问级别取它本身和所采纳协议两者间最低的访问级别。也就是说如果一个类型是 public 级别，采纳的协议是 internal 级别，那么采纳了这个协议后，该类型作为符合协议的类型时，其访问级别也是 internal。
+// 如果你采纳了协议，那么实现了协议的所有要求后，你必须确保这些实现的访问级别不能低于协议的访问级别。
+
+
+// 运算符重载
+struct Vector2D {
+    var x = 0.0, y = 0.0
+}
+func + (left: Vector2D, right: Vector2D) -> Vector2D {
+    return Vector2D(x: left.x + right.x, y: left.y + right.y)
+}
+func += (inout left: Vector2D, right: Vector2D) {  // 不能对默认的赋值运算符（=）进行重载，但组合赋值运算符可以被重载。另外，也无法对三目条件运算符 （a ? b : c） 进行重载。
+    left = left + right
+}
+
+// 单目运算符可以是前缀的（prefix），也可以是后缀的（postfix）：
+prefix func - (vector: Vector2D) -> Vector2D {  // 前缀运算符
+    return Vector2D(x: -vector.x, y: -vector.y)
+}
+let positive = Vector2D(x: 3.0, y: 4.0)
+let negative = -positive  // negative 是一个值为 (-3.0, -4.0) 的 Vector2D 实例
+let alsoPositive = -negative  // alsoPositive 是一个值为 (3.0, 4.0) 的 Vector2D 实例
+
+
+// 自定义运算符
+// 新的运算符要使用 operator 关键字在全局作用域内进行定义，同时还要指定 prefix、infix 或者 postfix 修饰符：
+infix operator +- { associativity left precedence 140 }  // 显式指定结合性和优先级。结合性可取的值有left，right 和 none。结合性取默认值 none，优先级取默认值 100。
+func +- (left: Vector2D, right: Vector2D) -> Vector2D {  // 自定义运算符的实现
+    return Vector2D(x: left.x + right.x, y: left.y - right.y)
+}
+let firstVector = Vector2D(x: 1.0, y: 2.0)
+let secondVector = Vector2D(x: 3.0, y: 4.0)
+let plusMinusVector = firstVector +- secondVector  // plusMinusVector 是一个 Vector2D 实例，并且它的值为 (4.0, -2.0)
+
+// 当定义前缀与后缀运算符的时候，我们并没有指定优先级。然而，如果对同一个值同时使用前缀与后缀运算符，则后缀运算符会先参与运算。
 prefix operator !!! {}
-
-// 定义一个前缀运算符，使矩形的边长放大三倍
-prefix func !!! (inout shape: Square) -> Square {
-    shape.sideLength *= 3
-    return shape
-}
-
-// 当前值
-print(mySquare.sideLength) // 4
-
-// 使用自定义的 !!! 运算符来把矩形边长放大三倍
-!!!mySquare
-print(mySquare.sideLength) // 12
 
 // 运算符也可以是泛型
 infix operator <-> {}
@@ -2517,10 +2765,8 @@ func <-><T: Equatable> (inout a: T, inout b: T) {
     a = b
     b = c
 }
-
 var foo: Float = 10
 var bar: Float = 20
-
 foo <-> bar
-print("foo is \(foo), bar is \(bar)") // "foo is 20.0, bar is 10.0"
+print("foo is \(foo), bar is \(bar)")  // "foo is 20.0, bar is 10.0"
 
